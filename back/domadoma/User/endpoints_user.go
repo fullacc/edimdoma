@@ -62,7 +62,7 @@ func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Pwd))
+		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Password))
 		if err != nil {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ": "Wrong password"})
 			return

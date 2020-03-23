@@ -3,6 +3,7 @@ package OfferLog
 import (
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
 func NewPostgreOfferLogBase(configfile *domadoma.ConfigFile) (OfferLogBase, error) {
@@ -14,15 +15,31 @@ func NewPostgreOfferLogBase(configfile *domadoma.ConfigFile) (OfferLogBase, erro
 		Password: configfile.Password,
 	})
 
-	err := domadoma.createSchema(db)
+	err := createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &domadoma.postgreBase{db: db}, nil
+	return &postgreOfferLogBase{db: db}, nil
 }
 
+type postgreOfferLogBase struct {
+	db *pg.DB
+}
 
-func (p *domadoma.postgreBase) CreateOfferLog(offerLog *OfferLog) (*OfferLog, error) {
+func createSchema(db *pg.DB) error {
+	for _, model := range []interface{}{(*OfferLog)(nil)} {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp:        false,
+			IfNotExists: true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *postgreOfferLogBase) CreateOfferLog(offerLog *OfferLog) (*OfferLog, error) {
 	err := p.db.Insert(offerLog)
 	if err != nil {
 		return nil,err
@@ -30,7 +47,7 @@ func (p *domadoma.postgreBase) CreateOfferLog(offerLog *OfferLog) (*OfferLog, er
 	return offerLog,nil
 }
 
-func (p *domadoma.postgreBase) GetOfferLog(id int) (*OfferLog, error) {
+func (p *postgreOfferLogBase) GetOfferLog(id int) (*OfferLog, error) {
 	offerLog := &OfferLog{Id: id}
 	err := p.db.Select(&offerLog)
 	if err != nil {
@@ -39,7 +56,7 @@ func (p *domadoma.postgreBase) GetOfferLog(id int) (*OfferLog, error) {
 	return offerLog, nil
 }
 
-func (p *domadoma.postgreBase) ListOfferLogs() ([]*OfferLog, error) {
+func (p *postgreOfferLogBase) ListOfferLogs() ([]*OfferLog, error) {
 	var offerLogs []*OfferLog
 	err := p.db.Select(offerLogs)
 	if err != nil {
@@ -48,7 +65,7 @@ func (p *domadoma.postgreBase) ListOfferLogs() ([]*OfferLog, error) {
 	return offerLogs,nil
 }
 
-func (p *domadoma.postgreBase) UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error) {
+func (p *postgreOfferLogBase) UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error) {
 	offerLog1 := &OfferLog{Id: id}
 	err := p.db.Select(offerLog1)
 	if err != nil {
@@ -62,7 +79,7 @@ func (p *domadoma.postgreBase) UpdateOfferLog(id int, offerLog *OfferLog) (*Offe
 	return offerLog1, nil
 }
 
-func (p *domadoma.postgreBase) DeleteOfferLog(id int) error {
+func (p *postgreOfferLogBase) DeleteOfferLog(id int) error {
 	offerLog := &OfferLog{Id: id}
 	err := p.db.Delete(offerLog)
 	if err != nil {

@@ -3,6 +3,7 @@ package Feedback
 import (
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
 func NewPostgreFeedbackBase(configfile *domadoma.ConfigFile) (FeedbackBase, error) {
@@ -14,14 +15,31 @@ func NewPostgreFeedbackBase(configfile *domadoma.ConfigFile) (FeedbackBase, erro
 		Password: configfile.Password,
 	})
 
-	err := domadoma.createSchema(db)
+	err := createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &domadoma.postgreBase{db: db}, nil
+	return &postgreFeedbackBase{db: db}, nil
 }
 
-func (p *domadoma.postgreBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
+type postgreFeedbackBase struct {
+	db *pg.DB
+}
+
+func createSchema(db *pg.DB) error {
+	for _, model := range []interface{}{(*FeedbackBase)(nil)} {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp:        false,
+			IfNotExists: true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *postgreFeedbackBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
 	err := p.db.Insert(feedback)
 	if err != nil {
 		return nil,err
@@ -29,7 +47,7 @@ func (p *domadoma.postgreBase) CreateFeedback(feedback *Feedback) (*Feedback, er
 	return feedback,nil
 }
 
-func (p *domadoma.postgreBase) GetFeedback(id int) (*Feedback, error) {
+func (p *postgreFeedbackBase) GetFeedback(id int) (*Feedback, error) {
 	feedback := &Feedback{Id: id}
 	err := p.db.Select(&feedback)
 	if err != nil {
@@ -38,7 +56,7 @@ func (p *domadoma.postgreBase) GetFeedback(id int) (*Feedback, error) {
 	return feedback, nil
 }
 
-func (p *domadoma.postgreBase) ListFeedbacks() ([]*Feedback, error) {
+func (p *postgreFeedbackBase) ListFeedbacks() ([]*Feedback, error) {
 	var feedbacks []*Feedback
 	err := p.db.Select(feedbacks)
 	if err != nil {
@@ -47,7 +65,7 @@ func (p *domadoma.postgreBase) ListFeedbacks() ([]*Feedback, error) {
 	return feedbacks,nil
 }
 
-func (p *domadoma.postgreBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, error) {
+func (p *postgreFeedbackBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, error) {
 	feedback1 := &Feedback{Id: id}
 	err := p.db.Select(feedback1)
 	if err != nil {
@@ -61,7 +79,7 @@ func (p *domadoma.postgreBase) UpdateFeedback(id int, feedback *Feedback) (*Feed
 	return feedback1, nil
 }
 
-func (p *domadoma.postgreBase) DeleteFeedback(id int) error {
+func (p *postgreFeedbackBase) DeleteFeedback(id int) error {
 	feedback := &Feedback{Id: id}
 	err := p.db.Delete(feedback)
 	if err != nil {

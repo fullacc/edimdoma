@@ -3,9 +3,10 @@ package User
 import (
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
+func NewpostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.Name,
@@ -14,22 +15,40 @@ func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 		Password: configfile.Password,
 	})
 
-	err := domadoma.CreateSchema(db)
+	err := createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &domadoma.PostgreBase{db: db}, nil
+	return &postgreUserBase{db: db}, nil
 }
 
-func (p *domadoma.PostgreBase) CreateUser(user *User) (*User, error) {
-	err := p.Db.Insert(user)
+type postgreUserBase struct {
+	db *pg.DB
+}
+
+func createSchema(db *pg.DB) error {
+	for _, model := range []interface{}{(*User)(nil)} {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp:        false,
+			IfNotExists: true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+
+func (p *postgreUserBase) CreateUser(user *User) (*User, error) {
+	err := p.db.Insert(user)
 	if err != nil {
 		return nil,err
 	}
 	return user,nil
 }
 
-func (p *domadoma.PostgreBase) GetUser(user *User) (*User, error) {
+func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 	err := p.db.Select(&user)
 	if err != nil {
 		return nil, err
@@ -37,7 +56,7 @@ func (p *domadoma.PostgreBase) GetUser(user *User) (*User, error) {
 	return user, nil
 }
 
-func (p *domadoma.PostgreBase) ListUsers() ([]*User, error) {
+func (p *postgreUserBase) ListUsers() ([]*User, error) {
 	var users []*User
 	err := p.db.Select(users)
 	if err != nil {
@@ -46,7 +65,7 @@ func (p *domadoma.PostgreBase) ListUsers() ([]*User, error) {
 	return users,nil
 }
 
-func (p *domadoma.PostgreBase) UpdateUser(id int, user *User) (*User, error) {
+func (p *postgreUserBase) UpdateUser(id int, user *User) (*User, error) {
 	user1 := &User{Id: id}
 	err := p.db.Select(user1)
 	if err != nil {
@@ -60,7 +79,7 @@ func (p *domadoma.PostgreBase) UpdateUser(id int, user *User) (*User, error) {
 	return user1, nil
 }
 
-func (p *domadoma.PostgreBase) DeleteUser(id int) error {
+func (p *postgreUserBase) DeleteUser(id int) error {
 	user := &User{Id: id}
 	err := p.db.Delete(user)
 	if err != nil {
