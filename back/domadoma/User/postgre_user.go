@@ -14,23 +14,22 @@ func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 		Password: configfile.Password,
 	})
 
-	err := domadoma.createSchema(db)
+	err := domadoma.CreateSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &domadoma.postgreBase{db: db}, nil
+	return &domadoma.PostgreBase{db: db}, nil
 }
 
-
-func (p *domadoma.postgreBase) CreateUser(user *User) (*User, error) {
-	err := p.db.Insert(user)
+func (p *domadoma.PostgreBase) CreateUser(user *User) (*User, error) {
+	err := p.Db.Insert(user)
 	if err != nil {
 		return nil,err
 	}
 	return user,nil
 }
 
-func (p *domadoma.postgreBase) GetUser(user *User) (*User, error) {
+func (p *domadoma.PostgreBase) GetUser(user *User) (*User, error) {
 	err := p.db.Select(&user)
 	if err != nil {
 		return nil, err
@@ -38,7 +37,7 @@ func (p *domadoma.postgreBase) GetUser(user *User) (*User, error) {
 	return user, nil
 }
 
-func (p *domadoma.postgreBase) ListUsers() ([]*User, error) {
+func (p *domadoma.PostgreBase) ListUsers() ([]*User, error) {
 	var users []*User
 	err := p.db.Select(users)
 	if err != nil {
@@ -47,7 +46,7 @@ func (p *domadoma.postgreBase) ListUsers() ([]*User, error) {
 	return users,nil
 }
 
-func (p *domadoma.postgreBase) UpdateUser(id int, user *User) (*User, error) {
+func (p *domadoma.PostgreBase) UpdateUser(id int, user *User) (*User, error) {
 	user1 := &User{Id: id}
 	err := p.db.Select(user1)
 	if err != nil {
@@ -61,7 +60,7 @@ func (p *domadoma.postgreBase) UpdateUser(id int, user *User) (*User, error) {
 	return user1, nil
 }
 
-func (p *domadoma.postgreBase) DeleteUser(id int) error {
+func (p *domadoma.PostgreBase) DeleteUser(id int) error {
 	user := &User{Id: id}
 	err := p.db.Delete(user)
 	if err != nil {

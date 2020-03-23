@@ -1,21 +1,22 @@
 package domadoma
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma/Deal"
-	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
-	"github.com/fullacc/edimdoma/back/domadoma/Offer"
-	"github.com/fullacc/edimdoma/back/domadoma/Request"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"./Deal"
+	"./Feedback"
+	"./Offer"
+	"./OfferLog"
+	"./Request"
+	"./User"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-type postgreBase struct {
+type PostgreBase struct {
 	db *pg.DB
 }
 
-func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*Deal.Deal)(nil),(*Feedback.Feedback)(nil),(*Offer.Offer)(nil),(*OffersLog)(nil),(*Request.Request)(nil),(*User.User)(nil)} {
+func CreateSchema(db *pg.DB) error {
+	for _, model := range []interface{}{(*Deal.Deal)(nil),(*Feedback.Feedback)(nil),(*Offer.Offer)(nil),(*OfferLog.OfferLog)(nil),(*Request.Request)(nil),(*User.User)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,

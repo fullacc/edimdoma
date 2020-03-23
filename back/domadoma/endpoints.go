@@ -3,7 +3,7 @@ package domadoma
 import (
 	"encoding/json"
 	"errors"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"./User"
 	"github.com/go-redis/redis"
 	"net/http"
 )
