@@ -3,21 +3,15 @@ package domadoma
 import (
 	"encoding/json"
 	"errors"
-	"./User"
+	"fmt"
 	"github.com/go-redis/redis"
-	"net/http"
 )
-
-func RenderError(w http.ResponseWriter,msg string,statuscode int) {
-	w.WriteHeader(statuscode)
-	w.Write([]byte(msg))
-}
 
 func GetToken(token string) (*UserInfo,error) {
 	if len(token) == 0 {
 		return nil,errors.New("no token provided")
 	}
-	redisClient := User.Connect()
+	redisClient := Connect()
 	val, err := redisClient.Get(token).Result()
 	uInfo := &UserInfo{}
 	if err == redis.Nil {
@@ -31,4 +25,16 @@ func GetToken(token string) (*UserInfo,error) {
 		}
 	}
 	return uInfo,nil
+}
+
+func Connect() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "", // no password set
+		DB:       0,  // use default DB
+	})
+
+	pong, err := client.Ping().Result()
+	fmt.Println(pong, err)
+	return client
 }

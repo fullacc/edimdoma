@@ -168,7 +168,7 @@ func LaunchServer(configpath string) error{
 			producers.GET(":producerid/deal/:dealid",postgreDealEndpoints.GetDeal())
 			offerlogs := producers.Group(":producerid/offerlog")
 			{
-				offerlogs.GET("",postgreOfferLogEndpoints.ListProducerOfferLogs())
+				offerlogs.GET("",postgreOfferLogEndpoints.ListOfferLogs())
 				offerlogs.GET(":offerlogid",postgreOfferLogEndpoints.GetOfferLog())
 				offerlogs.DELETE(":offerlogid",postgreOfferLogEndpoints.DeleteOfferLog())
 			}

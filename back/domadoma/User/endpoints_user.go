@@ -37,18 +37,6 @@ type UserEndpointsFactory struct{
 	userBase UserBase
 }
 
-func Connect() *redis.Client {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	pong, err := client.Ping().Result()
-	fmt.Println(pong, err)
-	return client
-}
-
 func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 	return func(c *gin.Context) {
 		var user *domadoma.UserLogin
@@ -56,17 +44,20 @@ func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ":err.Error()})
 			return
 		}
+
 		lookupuser := &User{UserName: user.UserName}
 		lookupuser, err := f.userBase.GetUser(lookupuser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Password))
 		if err != nil {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ": "Wrong password"})
 			return
 		}
+
 		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:lookupuser.Id}
 		data, err := json.Marshal(input)
 		redisClient := Connect()
@@ -82,26 +73,31 @@ func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
+
 		id := c.Param( "userid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"No id provided"})
 			return
 		}
+
 		intid, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		user := &User{Id: intid}
 		user, err = f.userBase.GetUser(user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		user.PasswordHash=".!."
 		c.JSON(http.StatusOK,user)
 	}
@@ -123,12 +119,14 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		user.PasswordHash = hash
 		result, err := f.userBase.CreateUser(user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:user.Id}
 		data, err := json.Marshal(input)
 		redisClient := Connect()
@@ -146,16 +144,19 @@ func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager {
 			c.JSON(http.StatusForbidden,gin.H{"Error :":"Not allowed"})
 			return
 		}
+
 		var users []*User
 		users, err = f.userBase.ListUsers()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusCreated,users)
 	}
 }
@@ -167,34 +168,55 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
+
 		id := c.Param("userid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
 			return
 		}
+
 		intid, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != intid{
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
+
+		usertocheck := &User{Id:intid}
+		usertocheck,err = f.userBase.GetUser(usertocheck)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
 		user := &User{}
 		if err := c.ShouldBindJSON(user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
 			return
 		}
+
+		user.PasswordHash = usertocheck.PasswordHash
+		user.Rating = usertocheck.Rating
+		user.Id = usertocheck.Id
+		user.Password = usertocheck.Password
+
 		user, err = f.userBase.UpdateUser(intid, user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 			return
 		}
+
+		user.PasswordHash = ".!."
+		user.Password = ".!."
 		c.JSON(http.StatusOK,user)
 	}
 }
@@ -206,29 +228,35 @@ func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
+
 		id := c.Param("userid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
 			return
 		}
+
 		intid, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != intid{
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
+
 		err = f.userBase.DeleteUser(intid)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
 		c.JSON(http.StatusOK,gin.H{"deleted":intid})
 	}
 }

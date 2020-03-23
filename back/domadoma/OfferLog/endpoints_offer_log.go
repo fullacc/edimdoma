@@ -1,6 +1,7 @@
 package OfferLog
 
 import (
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -9,13 +10,9 @@ import (
 type OfferLogEndpoints interface{
 	GetOfferLog() func(c *gin.Context)
 
-	CreateOfferLog() func(c *gin.Context)
+//	CreateOfferLog() func(c *gin.Context)
 
 	ListOfferLogs() func(c *gin.Context)
-
-	ListProducerOfferLogs() func(c *gin.Context)
-
-	UpdateOfferLog() func(c *gin.Context)
 
 	DeleteOfferLog() func(c *gin.Context)
 }
@@ -30,26 +27,44 @@ type OfferLogEndpointsFactory struct{
 
 func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		CHECKIFAUTHORIZED
-		id := c.Param( "offerLogid")
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
+
+		id := c.Param( "offerlogid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"No id provided"})
 			return
 		}
+
 		intid, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		offerLog, err := f.offerLogBase.GetOfferLog(intid)
+
+		offer, err := f.offerLogBase.GetOfferLog(intid)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK,offerLog)
+
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != offer.ProducerId {
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
+
+		c.JSON(http.StatusOK,offer)
 	}
 }
-
+/*
 func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		CHECKIFAUTHORIZED
@@ -68,65 +83,93 @@ func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 		c.JSON(http.StatusCreated,result)
 	}
 }
-
+*/
 func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		CHECKIFAUTHORIZED
-		var offerLogs []*OfferLog
-		offerLogs, err := f.offerLogBase.ListOfferLogs()
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated,offerLogs)
-	}
-}
 
-func (f OfferLogEndpointsFactory) UpdateOfferLog() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		CHECKAUTHORIZED
-		id := c.Param("offerLogid")
-		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
-		intid, err := strconv.Atoi(id)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
-			return
+
+		var offerLogs []*OfferLog
+		idp := c.Param("producerid")
+		if (curruser.Permission == domadoma.Admin || curruser.Permission == domadoma.Manager)&&len(idp) == 0 {
+			offerLogs, err = f.offerLogBase.ListOfferLogs()
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+				return
+			}
+		} else{
+			if len(idp) != 0 {
+				intid, err := strconv.Atoi(idp)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					return
+				}
+
+				offerLogs, err = f.offerLogBase.ListProducerOfferLogs(intid)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					return
+				}
+
+			} else {
+				c.JSON(http.StatusForbidden,gin.H{"Error: ": "Not allowed"})
+				return
+			}
 		}
-		offerLog := &OfferLog{}
-		if err := c.ShouldBindJSON(offerLog); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
-			return
-		}
-		offerLog, err = f.offerLogBase.UpdateOfferLog(intid, offerLog)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
-			return
-		}
-		c.JSON(http.StatusOK,offerLog)
+		c.JSON(http.StatusOK,offerLogs)
 	}
 }
 
 func (f OfferLogEndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		CHECKAUTHORIZED
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular{
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
+
 		id := c.Param("offerLogid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
 			return
 		}
+
 		intid, err := strconv.Atoi(id)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
+
+		offerLogtocheck, err := f.offerLogBase.GetOfferLog(intid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			return
+		}
+
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != offerLogtocheck.ProducerId{
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
+
 		err = f.offerLogBase.DeleteOfferLog(intid)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK,gin.H{"deleted":intid})
+
+		c.JSON(http.StatusOK,gin.H{"deletedid":intid})
 	}
 }

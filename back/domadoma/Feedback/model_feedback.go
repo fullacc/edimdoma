@@ -9,6 +9,8 @@ type FeedbackBase interface{
 
 	ListFeedbacks() ([]*Feedback, error)
 
+	ListProducerFeedbacks(id int) ([]*Feedback, error)
+
 	UpdateFeedback(id int, feedback *Feedback) (*Feedback, error)
 
 	DeleteFeedback(id int)  error
@@ -16,10 +18,10 @@ type FeedbackBase interface{
 
 type Feedback struct {
 	Id int `json:"id"`
-	ProducerId int `json:"producer_id" binding:"required"`
-	ConsumerId int `json:"consumer_id" binding:"required"`
+	ProducerId int `json:"producer_id"`
+	ConsumerId int `json:"consumer_id"`
 	Value int `json:"value" binding:"required"`
 	Text string `json:"text" binding:"required"`
 	Created time.Time `json:"created" binding:"required"`
-	FeedbackId int `json:"deal_id" binding:"required"`
+	DealId int `json:"deal_id"`
 }

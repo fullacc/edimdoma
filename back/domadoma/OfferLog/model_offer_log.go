@@ -9,6 +9,8 @@ type OfferLogBase interface{
 
 	ListOfferLogs() ([]*OfferLog, error)
 
+	ListProducerOfferLogs(id int) ([]*OfferLog, error)
+
 	UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error)
 
 	DeleteOfferLog(id int)  error
