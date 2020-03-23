@@ -2,7 +2,6 @@ package domadoma
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 )
@@ -158,6 +157,15 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
+		dealtogetid, err := d.dealBase.GetDeal(intid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+			return
+		}
+		if curruser.Permission!=Admin && curruser.Permission!=Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
+			return
+		}
 		deal := &Deal{}
 		if err := c.ShouldBindJSON(&deal); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -174,7 +182,15 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 
 func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		CHECKAUTHORIZED
+		curruser, err := getToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+		if curruser.Permission != Admin && curruser.Permission != Manager{
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
 		id := c.Param("dealid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "No id given"})
@@ -190,6 +206,6 @@ func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK)
+		c.JSON(http.StatusOK,gin.H{"DealID": intid})
 	}
 }

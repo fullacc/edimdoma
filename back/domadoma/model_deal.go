@@ -26,6 +26,6 @@ type Deal struct {
 	ConsumerId int `json:"consumer_id" binding:"required"`
 	ProducerId int `json:"producer_id" binding:"required"`
 	Created time.Time `json:"created" binding:"required"`
-	Finished time.Time `json:"finished"`
+	Finished time.Time `json:"finished,omitempty"`
 	Active bool `json:"active"`
 }
