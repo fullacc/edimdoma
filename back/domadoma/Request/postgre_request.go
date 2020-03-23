@@ -6,7 +6,7 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
-func NewpostgreRequestBase(configfile *domadoma.ConfigFile) (RequestBase, error) {
+func NewPostgreRequestBase(configfile *domadoma.ConfigFile) (RequestBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.Name,

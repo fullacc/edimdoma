@@ -32,7 +32,7 @@ type FeedbackEndpointsFactory struct{
 
 func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
@@ -62,7 +62,7 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 
 func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
@@ -81,7 +81,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		dealtogetid, err:= f.dealBase.GetDeal()
+		dealtogetid, err:= f.dealBase.GetDeal(intid)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 			return
