@@ -1,22 +1,26 @@
 package domadoma
 
 type UserBase interface{
-	CreateUser()
+	CreateUser(user *User) (*User, error)
 
-	GetUser()
+	GetUser(user *User) (*User, error)
 
-	ListUsers()
+	ListUsers() ([]*User, error)
 
-	UpdateUser()
+	UpdateUser(id int, user *User) (*User, error)
 
-	DeleteUser()
+	DeleteUser(id int)  error
 }
 
 type User struct {
-	Id int `json:"id"`
-	UserName string `json:"user_name"`
-	Name string `json:"name"`
-	Surname string `json:"surname"`
-	Phone string `json:"phone"`
-	City string `json:"city"`
+	Id int `json:"id,omitempty"`
+	UserName string `json:"user_name" binding:"required"`
+	Password string `json:"password" binding:"-"`
+	PasswordHash string
+	Name string `json:"name" binding:"required"`
+	Surname string `json:"surname" binding:"required"`
+	Rating int
+	Phone string `json:"phone" binding:"required"`
+	Email string `json:"email" binding:"required"`
+	City string `json:"city" binding:"required"`
 }

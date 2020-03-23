@@ -4,12 +4,11 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/fullacc/photoback/back/photo_base"
-	"github.com/gorilla/mux"
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -63,64 +62,137 @@ func LaunchServer(configpath string) error{
 	if err != nil {
 		return err
 	}
-	var configfile *photo_base.ConfigFile
+	var configfile *domadoma.ConfigFile
 	if err := json.Unmarshal(data, &configfile); err != nil {
 		return err
 	}
 	file.Close()
 
-	postgrePersonStore, err := photo_base.NewPostgrePersonStore(configfile)
+
+	postgreDealBase, err := domadoma.NewPostgreDealBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreOperationStore, err := photo_base.NewPostgreOperationStore(configfile)
+	postgreFeedbackBase, err := domadoma.NewPostgreFeedbackBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgrePhotoStore, err := photo_base.NewPostgrePhotoStore(configfile)
+	postgreOfferBase, err := domadoma.NewPostgreOfferBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgrepersonendpoints := photo_base.NewEndpointsPersonFactory(postgrePersonStore)
-	postgreoperationendpoints := photo_base.NewEndpointsOperationFactory(postgreOperationStore)
-	postgrephotoendpoints := photo_base.NewEndpointsPhotoFactory(postgrePhotoStore)
+	postgreOfferLogBase, err := domadoma.NewPostgreOfferLogBase(configfile)
+	if err != nil {
+		panic(err)
+	}
 
-	router := mux.NewRouter()
+	postgreRequestBase, err := domadoma.NewPostgreRequestBase(configfile)
+	if err != nil {
+		panic(err)
+	}
 
-	router.Methods("GET").Path("/person/{id}").HandlerFunc(postgrepersonendpoints.GetPerson("id"))
-	router.Methods("POST").Path("/person/").HandlerFunc(postgrepersonendpoints.CreatePerson())
-	router.Methods("GET").Path("/person/").HandlerFunc(postgrepersonendpoints.ListPersons())
-	router.Methods("PUT").Path("/person/{id}").HandlerFunc(postgrepersonendpoints.UpdatePerson("id"))
-	router.Methods("DELETE").Path("/person/{id}").HandlerFunc(postgrepersonendpoints.DeletePerson("id"))
+	postgreUserBase, err := domadoma.NewPostgreUserBase(configfile)
+	if err != nil {
+		panic(err)
+	}
 
-	router.Methods("GET").Path("/person/{personid}/operation/{id}").HandlerFunc(postgreoperationendpoints.GetOperation("id"))
-	router.Methods("POST").Path("/person/{personid}/operation/").HandlerFunc(postgreoperationendpoints.CreateOperation())
-	router.Methods("GET").Path("/operation/").HandlerFunc(postgreoperationendpoints.ListOperations())
-	router.Methods("GET").Path("/person/{id}/operation").HandlerFunc(postgreoperationendpoints.ListPersonOperations("id"))
-	router.Methods("PUT").Path("/person/{personid}/operation/{id}").HandlerFunc(postgreoperationendpoints.UpdateOperation("id"))
-	router.Methods("DELETE").Path("/person/{personid}/operation/{id}").HandlerFunc(postgreoperationendpoints.DeleteOperation("personid","id"))
+	postgreDealEndpoints := domadoma.NewDealEndpoints(postgreDealBase)
 
-	router.Methods("GET").Path("/person/{personid}/operation/{operationid}/photo/{id}").HandlerFunc(postgrephotoendpoints.GetPhoto("id"))
-	router.Methods("POST").Path("/person/{personid}/operation/{operationid}/photo/").HandlerFunc(postgrephotoendpoints.CreatePhoto("personid","operationid"))
-	router.Methods("GET").Path("/photo/").HandlerFunc(postgrephotoendpoints.ListPhotos())
-	router.Methods("GET").Path("/person/{personid}/photo").HandlerFunc(postgrephotoendpoints.ListPersonPhotos("personid"))
-	router.Methods("GET").Path("/person/{personid}/operation/{operationid}/photo/").HandlerFunc(postgrephotoendpoints.ListOperationPhotos("operationid"))
-	router.Methods("PUT").Path("/person/{personid}/operation/{operationid}/photo/{id}").HandlerFunc(postgrephotoendpoints.UpdatePhoto("id"))
-	router.Methods("DELETE").Path("/person/{personid}/operation/{operationid}/photo/{id}").HandlerFunc(postgrephotoendpoints.DeletePhoto("id"))
+	postgreFeedbackEndpoints := domadoma.NewFeedbackEndpoints(postgreFeedbackBase)
 
+	postgreOfferEndpoints := domadoma.NewOfferEndpoints(postgreOfferBase)
+
+	postgreOfferLogEndpoints := domadoma.NewOfferLogEndpoints(postgreOfferLogBase)
+
+	postgreRequestEndpoints := domadoma.NewRequestEndpoints(postgreRequestBase)
+
+	postgreUserEndpoints := domadoma.NewUserEndpoints(postgreUserBase)
+
+	router := gin.Default()
+
+	api := router.Group("api")
+	{
+
+		api.GET("deals",postgreDealEndpoints.ListDeals())
+		api.GET("feedbacks",postgreFeedbackEndpoints.ListFeedbacks())
+		api.GET("offers",postgreOfferEndpoints.ListOffers())
+		api.GET("offer_logs",postgreOfferLogEndpoints.ListOfferLogs())
+		api.GET("requests",postgreRequestEndpoints.ListRequests())
+		api.GET("users",postgreUserEndpoints.ListUsers())
+
+		deals := api.Group("deal")
+		{
+			deals.GET("",postgreDealEndpoints.ListDeals())
+			deals.GET(":dealid",postgreDealEndpoints.GetDeal())
+			deals.DELETE(":dealid",postgreDealEndpoints.DeleteDeal())
+			deals.PUT(":dealid",postgreDealEndpoints.UpdateDeal())
+		}
+
+		consumers := api.Group("consumer")
+		{
+			requests := consumers.Group(":consumerid/request")
+			{
+				requests.POST("",postgreRequestEndpoints.CreateRequest())
+				requests.GET("",postgreRequestEndpoints.ListConsumerRequests())
+				requests.GET(":requestid",postgreRequestEndpoints.GetRequest())
+				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
+				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
+			}
+			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())
+			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())
+			consumers.GET(":consumerid/deal/:dealid",postgreDealEndpoints.GetDeal())
+		}
+
+		producers := api.Group("producer")
+		{
+			offers := producers.Group(":producerid/offer")
+			{
+				offers.POST("",postgreOfferEndpoints.CreateOffer())
+				offers.GET("",postgreOfferEndpoints.ListProducerOffers())
+				offers.GET(":offerid",postgreOfferEndpoints.GetOffer())
+				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
+				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
+			}
+			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
+			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())
+			producers.GET(":producerid/deal/:dealid",postgreDealEndpoints.GetDeal())
+			offerlogs := producers.Group(":producerid/offerlog")
+			{
+				offerlogs.GET("",postgreOfferLogEndpoints.ListProducerOfferLogs())
+				offerlogs.GET(":offerlogid",postgreOfferLogEndpoints.GetOfferLog())
+				offerlogs.DELETE(":offerlogid",postgreOfferLogEndpoints.DeleteOfferLog())
+			}
+		}
+
+		users := api.Group("user")
+		{
+			users.POST("registration",postgreUserEndpoints.CreateUser())
+			users.POST("login",postgreUserEndpoints.LoginUser())
+			users.GET(":userid",postgreUserEndpoints.GetUser())
+			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
+			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
+			feedbacks := api.Group(":userid/feedback")
+			{
+				feedbacks.GET("",postgreFeedbackEndpoints.ListFeedbacks())
+				feedbacks.GET(":feedbackid",postgreFeedbackEndpoints.GetFeedback())
+				feedbacks.PUT(":feedbackid",postgreFeedbackEndpoints.UpdateFeedback())
+				feedbacks.DELETE(":feedbackid",postgreFeedbackEndpoints.DeleteFeedback())
+			}
+		}
+	}
 
 	fmt.Println("Server started")
-	go func(port string, rtr *mux.Router) {
-		http.ListenAndServe("0.0.0.0:" + port, rtr)
+	go func(port string, rtr *gin.Engine) {
+		rtr.Run("0.0.0.0:" + port)
 	}(configfile.Port, router)
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 	signal.Notify(c, os.Interrupt,syscall.SIGTERM)
-	go func() {
+	go func(){
 		<-c
 		done <- true
 	}()

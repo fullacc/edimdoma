@@ -10,7 +10,7 @@ type postgreBase struct {
 }
 
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*Consumer)(nil),(*Deal)(nil),(*Feedback)(nil),(*Offer)(nil),(*OffersLog)(nil),(*Producer)(nil),(*Request)(nil),(*User)(nil)} {
+	for _, model := range []interface{}{(*Deal)(nil),(*Feedback)(nil),(*Offer)(nil),(*OffersLog)(nil),(*Request)(nil),(*User)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,

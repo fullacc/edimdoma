@@ -2,18 +2,26 @@ package domadoma
 
 import "time"
 
-type OffersLogBase interface{
+type OfferLogBase interface{
+	CreateOfferLog(offerLog *OfferLog) (*OfferLog, error)
 
+	GetOfferLog(id int) (*OfferLog, error)
+
+	ListOfferLogs() ([]*OfferLog, error)
+
+	UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error)
+
+	DeleteOfferLog(id int)  error
 }
 
-type OffersLog struct {
+type OfferLog struct {
 	Id int `json:"id"`
-	ProducerId int `json:"producer_id"`
-	Food string `json:"name"`
-	Price int `json:"price"`
-	InitialQuantity int `json:"initial_quantity"`
-	AvailableQuantity int `json:"available_quantity"`
-	Location []float64 `json:"location"`
-	Created time.Time `json:"created"`
+	ProducerId int `json:"producer_id" binding:"required"`
+	Food string `json:"name" binding:"required"`
+	Price int `json:"price" binding:"required"`
+	InitialQuantity int `json:"initial_quantity" binding:"required"`
+	AvailableQuantity int `json:"available_quantity" binding:"required"`
+	Location []float64 `json:"location" binding:"required"`
+	Created time.Time `json:"created" binding:"required"`
 }
 
