@@ -29,7 +29,15 @@ type FeedbackEndpointsFactory struct{
 
 func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		CHECKIFAUTHORIZED
+		curruser, err := getToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
 		id := c.Param( "feedbackid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"No id provided"})
@@ -51,7 +59,34 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 
 func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		CHECKIFAUTHORIZED
+		curruser, err := getToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+			return
+		}
+		id := c.Param("dealid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "No id given"})
+			return
+		}
+		intid, err := strconv.Atoi(id)
+		if err!=nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		dealtogetid, err:= postgreBase.GetDeal(intid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+			return
+		}
+		if curruser.Permission!=Admin && curruser.Permission!=Manager && curruser.UserId != dealtogetid.ConsumerId{
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
+			return
+		}
 		var feedback *Feedback
 		if err := c.ShouldBindJSON(&feedback); err != nil {
 			if err != nil {

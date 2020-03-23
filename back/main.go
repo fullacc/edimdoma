@@ -144,6 +144,7 @@ func LaunchServer(configpath string) error{
 			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())
 			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())
 			consumers.GET(":consumerid/deal/:dealid",postgreDealEndpoints.GetDeal())
+			consumers.POST(":consumerid/deal/:dealid/feedback",postgreFeedbackEndpoints.CreateFeedback())
 		}
 
 		producers := api.Group("producer")
