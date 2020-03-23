@@ -1,20 +1,24 @@
-package domadoma
+package Offer
 
-import "time"
+import (
+	"time"
+)
 
-type OfferLogBase interface{
-	CreateOfferLog(offerLog *OfferLog) (*OfferLog, error)
+type OfferBase interface{
+	CreateOffer(offer *Offer) (*Offer, error)
 
-	GetOfferLog(id int) (*OfferLog, error)
+	GetOffer(id int) (*Offer, error)
 
-	ListOfferLogs() ([]*OfferLog, error)
+	ListOffers() ([]*Offer, error)
 
-	UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error)
+	ListProducerOffers(id int)  ([]*Offer, error)
 
-	DeleteOfferLog(id int)  error
+	UpdateOffer(id int, offer *Offer) (*Offer, error)
+
+	DeleteOffer(id int)  error
 }
 
-type OfferLog struct {
+type Offer struct {
 	Id int `json:"id"`
 	ProducerId int `json:"producer_id" binding:"required"`
 	Food string `json:"name" binding:"required"`
@@ -24,4 +28,3 @@ type OfferLog struct {
 	Location []float64 `json:"location" binding:"required"`
 	Created time.Time `json:"created" binding:"required"`
 }
-

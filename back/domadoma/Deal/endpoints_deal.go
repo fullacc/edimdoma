@@ -1,6 +1,7 @@
-package domadoma
+package Deal
 
 import (
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -29,12 +30,12 @@ type DealEndpointsFactory struct{
 
 func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission !=Regular {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
@@ -53,7 +54,7 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
 			c.JSON(http.StatusForbidden,gin.H{"Error :": "Not allowed"})
 			return
 		}
@@ -63,12 +64,12 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 
 func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission !=Regular {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
@@ -88,17 +89,17 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 
 func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
 		var deals []*Deal
-		if curruser.Permission == Admin || curruser.Permission == Manager {
+		if curruser.Permission == domadoma.Admin || curruser.Permission == domadoma.Manager {
 			deals, err = d.dealBase.ListDeals()
 			if err != nil {
 				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
@@ -138,12 +139,12 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 
 func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
@@ -162,7 +163,7 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 			return
 		}
-		if curruser.Permission!=Admin && curruser.Permission!=Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= domadoma.Admin && curruser.Permission!= domadoma.Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
@@ -182,12 +183,12 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 
 func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}

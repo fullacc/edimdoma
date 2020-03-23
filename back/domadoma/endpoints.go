@@ -3,20 +3,21 @@ package domadoma
 import (
 	"encoding/json"
 	"errors"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/go-redis/redis"
 	"net/http"
 )
 
-func renderError(w http.ResponseWriter,msg string,statuscode int) {
+func RenderError(w http.ResponseWriter,msg string,statuscode int) {
 	w.WriteHeader(statuscode)
 	w.Write([]byte(msg))
 }
 
-func getToken(token string) (*UserInfo,error) {
+func GetToken(token string) (*UserInfo,error) {
 	if len(token) == 0 {
 		return nil,errors.New("no token provided")
 	}
-	redisClient := Connect()
+	redisClient := User.Connect()
 	val, err := redisClient.Get(token).Result()
 	uInfo := &UserInfo{}
 	if err == redis.Nil {

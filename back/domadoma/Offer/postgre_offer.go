@@ -1,8 +1,11 @@
-package domadoma
+package Offer
 
-import "github.com/go-pg/pg"
+import (
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/go-pg/pg"
+)
 
-func NewPostgreOfferBase(configfile *ConfigFile) (OfferBase, error) {
+func NewPostgreOfferBase(configfile *domadoma.ConfigFile) (OfferBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.Name,
@@ -11,15 +14,15 @@ func NewPostgreOfferBase(configfile *ConfigFile) (OfferBase, error) {
 		Password: configfile.Password,
 	})
 
-	err := createSchema(db)
+	err := domadoma.createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &postgreBase{db: db}, nil
+	return &domadoma.postgreBase{db: db}, nil
 }
 
 
-func (p *postgreBase) CreateOffer(offer *Offer) (*Offer, error) {
+func (p *domadoma.postgreBase) CreateOffer(offer *Offer) (*Offer, error) {
 	err := p.db.Insert(offer)
 	if err != nil {
 		return nil,err
@@ -27,8 +30,8 @@ func (p *postgreBase) CreateOffer(offer *Offer) (*Offer, error) {
 	return offer, nil
 }
 
-func (p *postgreBase) GetOffer(id int) (*Offer, error) {
-	offer := &Offer{Id:id}
+func (p *domadoma.postgreBase) GetOffer(id int) (*Offer, error) {
+	offer := &Offer{Id: id}
 	err := p.db.Select(&offer)
 	if err != nil {
 		return nil, err
@@ -36,7 +39,7 @@ func (p *postgreBase) GetOffer(id int) (*Offer, error) {
 	return offer, nil
 }
 
-func (p *postgreBase) ListOffers() ([]*Offer, error) {
+func (p *domadoma.postgreBase) ListOffers() ([]*Offer, error) {
 	var offers []*Offer
 	err := p.db.Select(offers)
 	if err != nil {
@@ -45,7 +48,7 @@ func (p *postgreBase) ListOffers() ([]*Offer, error) {
 	return offers, nil
 }
 
-func (p *postgreBase) ListProducerOffers(id int) ([]*Offer, error){
+func (p *domadoma.postgreBase) ListProducerOffers(id int) ([]*Offer, error){
 	var offers []*Offer
 	err := p.db.Model(&offers).Where("Producer_Id = ?",id).Select()
 	if err != nil {
@@ -54,8 +57,8 @@ func (p *postgreBase) ListProducerOffers(id int) ([]*Offer, error){
 	return offers, nil
 }
 
-func (p *postgreBase) UpdateOffer(id int, offer *Offer) (*Offer, error) {
-	offer1 := &Offer{Id:id}
+func (p *domadoma.postgreBase) UpdateOffer(id int, offer *Offer) (*Offer, error) {
+	offer1 := &Offer{Id: id}
 	err := p.db.Select(offer1)
 	if err != nil {
 		return nil,err
@@ -68,7 +71,7 @@ func (p *postgreBase) UpdateOffer(id int, offer *Offer) (*Offer, error) {
 	return offer1, nil
 }
 
-func (p *postgreBase) DeleteOffer(id int) error {
+func (p *domadoma.postgreBase) DeleteOffer(id int) error {
 	offer := &Offer{Id: id}
 	err := p.db.Delete(offer)
 	if err != nil {

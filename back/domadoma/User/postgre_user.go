@@ -1,8 +1,11 @@
-package domadoma
+package User
 
-import "github.com/go-pg/pg"
+import (
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/go-pg/pg"
+)
 
-func NewPostgreUserBase(configfile *ConfigFile) (UserBase, error) {
+func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.Name,
@@ -11,15 +14,15 @@ func NewPostgreUserBase(configfile *ConfigFile) (UserBase, error) {
 		Password: configfile.Password,
 	})
 
-	err := createSchema(db)
+	err := domadoma.createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &postgreBase{db: db}, nil
+	return &domadoma.postgreBase{db: db}, nil
 }
 
 
-func (p *postgreBase) CreateUser(user *User) (*User, error) {
+func (p *domadoma.postgreBase) CreateUser(user *User) (*User, error) {
 	err := p.db.Insert(user)
 	if err != nil {
 		return nil,err
@@ -27,7 +30,7 @@ func (p *postgreBase) CreateUser(user *User) (*User, error) {
 	return user,nil
 }
 
-func (p *postgreBase) GetUser(user *User) (*User, error) {
+func (p *domadoma.postgreBase) GetUser(user *User) (*User, error) {
 	err := p.db.Select(&user)
 	if err != nil {
 		return nil, err
@@ -35,7 +38,7 @@ func (p *postgreBase) GetUser(user *User) (*User, error) {
 	return user, nil
 }
 
-func (p *postgreBase) ListUsers() ([]*User, error) {
+func (p *domadoma.postgreBase) ListUsers() ([]*User, error) {
 	var users []*User
 	err := p.db.Select(users)
 	if err != nil {
@@ -44,8 +47,8 @@ func (p *postgreBase) ListUsers() ([]*User, error) {
 	return users,nil
 }
 
-func (p *postgreBase) UpdateUser(id int, user *User) (*User, error) {
-	user1 := &User{Id:id}
+func (p *domadoma.postgreBase) UpdateUser(id int, user *User) (*User, error) {
+	user1 := &User{Id: id}
 	err := p.db.Select(user1)
 	if err != nil {
 		return nil,err
@@ -58,7 +61,7 @@ func (p *postgreBase) UpdateUser(id int, user *User) (*User, error) {
 	return user1, nil
 }
 
-func (p *postgreBase) DeleteUser(id int) error {
+func (p *domadoma.postgreBase) DeleteUser(id int) error {
 	user := &User{Id: id}
 	err := p.db.Delete(user)
 	if err != nil {

@@ -1,4 +1,4 @@
-package domadoma
+package User
 
 type UserBase interface{
 	CreateUser(user *User) (*User, error)

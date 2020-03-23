@@ -4,7 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"./domadoma"
+	"./domadoma/Deal"
+	"./domadoma/Feedback"
+	"./domadoma/Offer"
+	"./domadoma/OfferLog"
+	"./domadoma/Request"
+	"./domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -69,47 +75,47 @@ func LaunchServer(configpath string) error{
 	file.Close()
 
 
-	postgreDealBase, err := domadoma.NewPostgreDealBase(configfile)
+	postgreDealBase, err := Deal.NewPostgreDealBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreFeedbackBase, err := domadoma.NewPostgreFeedbackBase(configfile)
+	postgreFeedbackBase, err := Feedback.NewPostgreFeedbackBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreOfferBase, err := domadoma.NewPostgreOfferBase(configfile)
+	postgreOfferBase, err := Offer.NewPostgreOfferBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreOfferLogBase, err := domadoma.NewPostgreOfferLogBase(configfile)
+	postgreOfferLogBase, err := OfferLog.NewPostgreOfferLogBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreRequestBase, err := domadoma.NewPostgreRequestBase(configfile)
+	postgreRequestBase, err := Request.NewPostgreRequestBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreUserBase, err := domadoma.NewPostgreUserBase(configfile)
+	postgreUserBase, err := User.NewPostgreUserBase(configfile)
 	if err != nil {
 		panic(err)
 	}
 
-	postgreDealEndpoints := domadoma.NewDealEndpoints(postgreDealBase)
+	postgreDealEndpoints := Deal.NewDealEndpoints(postgreDealBase)
 
-	postgreFeedbackEndpoints := domadoma.NewFeedbackEndpoints(postgreFeedbackBase)
+	postgreFeedbackEndpoints := Feedback.NewFeedbackEndpoints(postgreFeedbackBase)
 
-	postgreOfferEndpoints := domadoma.NewOfferEndpoints(postgreOfferBase)
+	postgreOfferEndpoints := Offer.NewOfferEndpoints(postgreOfferBase)
 
-	postgreOfferLogEndpoints := domadoma.NewOfferLogEndpoints(postgreOfferLogBase)
+	postgreOfferLogEndpoints := OfferLog.NewOfferLogEndpoints(postgreOfferLogBase)
 
-	postgreRequestEndpoints := domadoma.NewRequestEndpoints(postgreRequestBase)
+	postgreRequestEndpoints := Request.NewRequestEndpoints(postgreRequestBase)
 
-	postgreUserEndpoints := domadoma.NewUserEndpoints(postgreUserBase)
+	postgreUserEndpoints := User.NewUserEndpoints(postgreUserBase)
 
 	router := gin.Default()
 

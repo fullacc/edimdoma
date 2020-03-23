@@ -1,4 +1,4 @@
-package domadoma
+package Deal
 
 import "time"
 

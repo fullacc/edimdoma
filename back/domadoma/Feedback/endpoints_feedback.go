@@ -1,6 +1,8 @@
-package domadoma
+package Feedback
 
 import (
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/Deal"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -25,16 +27,17 @@ func NewFeedbackEndpoints(feedbackBase FeedbackBase) FeedbackEndpoints {
 
 type FeedbackEndpointsFactory struct{
 	feedbackBase FeedbackBase
+	dealBase     Deal.DealBase
 }
 
 func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.getToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
@@ -59,12 +62,12 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 
 func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.getToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission != Regular{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
@@ -78,12 +81,12 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		dealtogetid, err:= postgreBase.GetDeal(intid)
+		dealtogetid, err:= f.dealBase.GetDeal()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 			return
 		}
-		if curruser.Permission!=Admin && curruser.Permission!=Manager && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= domadoma.Admin && curruser.Permission!= domadoma.Manager && curruser.UserId != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}

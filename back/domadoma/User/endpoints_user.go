@@ -1,8 +1,9 @@
-package domadoma
+package User
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis"
 	"github.com/rs/xid"
@@ -50,12 +51,12 @@ func Connect() *redis.Client {
 
 func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 	return func(c *gin.Context) {
-		var user *UserLogin
+		var user *domadoma.UserLogin
 		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ":err.Error()})
 			return
 		}
-		lookupuser := &User{UserName:user.UserName}
+		lookupuser := &User{UserName: user.UserName}
 		lookupuser, err := f.userBase.GetUser(lookupuser)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
@@ -66,7 +67,7 @@ func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ": "Wrong password"})
 			return
 		}
-		input := &UserInfo{Permission:Regular,Token:xid.New().String(),UserId:lookupuser.Id}
+		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:lookupuser.Id}
 		data, err := json.Marshal(input)
 		redisClient := Connect()
 		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
@@ -76,12 +77,12 @@ func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 
 func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission !=Regular {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
@@ -95,7 +96,7 @@ func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		user := &User{Id:intid}
+		user := &User{Id: intid}
 		user, err = f.userBase.GetUser(user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
@@ -128,7 +129,7 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		input := &UserInfo{Permission:Regular,Token:xid.New().String(),UserId:user.Id}
+		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:user.Id}
 		data, err := json.Marshal(input)
 		redisClient := Connect()
 		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
@@ -140,12 +141,12 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 
 func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager {
 			c.JSON(http.StatusForbidden,gin.H{"Error :":"Not allowed"})
 			return
 		}
@@ -161,12 +162,12 @@ func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 
 func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission !=Regular {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
@@ -180,7 +181,7 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.UserId != intid{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != intid{
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
@@ -200,12 +201,12 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 
 func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := getToken(c.Request.Header.Get("Token"))
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.Permission !=Regular {
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}
@@ -219,7 +220,7 @@ func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
 		}
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.UserId != intid{
+		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != intid{
 			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
 			return
 		}

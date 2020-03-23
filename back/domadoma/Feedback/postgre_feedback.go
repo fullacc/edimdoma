@@ -1,8 +1,11 @@
-package domadoma
+package Feedback
 
-import "github.com/go-pg/pg"
+import (
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/go-pg/pg"
+)
 
-func NewPostgreFeedbackBase(configfile *ConfigFile) (FeedbackBase, error) {
+func NewPostgreFeedbackBase(configfile *domadoma.ConfigFile) (FeedbackBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.Name,
@@ -11,14 +14,14 @@ func NewPostgreFeedbackBase(configfile *ConfigFile) (FeedbackBase, error) {
 		Password: configfile.Password,
 	})
 
-	err := createSchema(db)
+	err := domadoma.createSchema(db)
 	if err != nil {
 		return nil, err
 	}
-	return &postgreBase{db: db}, nil
+	return &domadoma.postgreBase{db: db}, nil
 }
 
-func (p *postgreBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
+func (p *domadoma.postgreBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
 	err := p.db.Insert(feedback)
 	if err != nil {
 		return nil,err
@@ -26,8 +29,8 @@ func (p *postgreBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
 	return feedback,nil
 }
 
-func (p *postgreBase) GetFeedback(id int) (*Feedback, error) {
-	feedback := &Feedback{Id:id}
+func (p *domadoma.postgreBase) GetFeedback(id int) (*Feedback, error) {
+	feedback := &Feedback{Id: id}
 	err := p.db.Select(&feedback)
 	if err != nil {
 		return nil, err
@@ -35,7 +38,7 @@ func (p *postgreBase) GetFeedback(id int) (*Feedback, error) {
 	return feedback, nil
 }
 
-func (p *postgreBase) ListFeedbacks() ([]*Feedback, error) {
+func (p *domadoma.postgreBase) ListFeedbacks() ([]*Feedback, error) {
 	var feedbacks []*Feedback
 	err := p.db.Select(feedbacks)
 	if err != nil {
@@ -44,8 +47,8 @@ func (p *postgreBase) ListFeedbacks() ([]*Feedback, error) {
 	return feedbacks,nil
 }
 
-func (p *postgreBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, error) {
-	feedback1 := &Feedback{Id:id}
+func (p *domadoma.postgreBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, error) {
+	feedback1 := &Feedback{Id: id}
 	err := p.db.Select(feedback1)
 	if err != nil {
 		return nil,err
@@ -58,7 +61,7 @@ func (p *postgreBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, err
 	return feedback1, nil
 }
 
-func (p *postgreBase) DeleteFeedback(id int) error {
+func (p *domadoma.postgreBase) DeleteFeedback(id int) error {
 	feedback := &Feedback{Id: id}
 	err := p.db.Delete(feedback)
 	if err != nil {

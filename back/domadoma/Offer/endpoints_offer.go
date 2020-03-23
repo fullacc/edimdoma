@@ -1,4 +1,4 @@
-package domadoma
+package Offer
 
 import (
 	"github.com/gin-gonic/gin"
