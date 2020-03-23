@@ -142,11 +142,12 @@ func LaunchServer(configpath string) error{
 			requests := consumers.Group(":consumerid/request")
 			{
 				requests.POST("",postgreRequestEndpoints.CreateRequest())
-				requests.GET("",postgreRequestEndpoints.ListConsumerRequests())
+				requests.GET("",postgreRequestEndpoints.ListRequests())
 				requests.GET(":requestid",postgreRequestEndpoints.GetRequest())
 				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
 				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
 			}
+			consumers.GET(":consumerid/offer",postgreOfferEndpoints.ListOffers())
 			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())
 			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())
 			consumers.GET(":consumerid/deal/:dealid",postgreDealEndpoints.GetDeal())
@@ -158,12 +159,14 @@ func LaunchServer(configpath string) error{
 			offers := producers.Group(":producerid/offer")
 			{
 				offers.POST("",postgreOfferEndpoints.CreateOffer())
-				offers.GET("",postgreOfferEndpoints.ListProducerOffers())
+				offers.GET("",postgreOfferEndpoints.ListOffers())
 				offers.GET(":offerid",postgreOfferEndpoints.GetOffer())
 				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
 				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
 			}
+			producers.GET(":producerid/request",postgreRequestEndpoints.ListRequests())
 			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
+			producers.PUT(":producerid/deal/:dealid",postgreDealEndpoints.CompleteDeal())
 			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())
 			producers.GET(":producerid/deal/:dealid",postgreDealEndpoints.GetDeal())
 			offerlogs := producers.Group(":producerid/offerlog")
