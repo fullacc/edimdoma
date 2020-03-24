@@ -13,6 +13,12 @@ type DealBase interface {
 
 	ListProducerDeals(id int) ([]*Deal, error)
 
+	ListActiveDeals() ([]*Deal, error)
+
+	ListActiveConsumerDeals(id int) ([]*Deal, error)
+
+	ListActiveProducerDeals(id int) ([]*Deal, error)
+
 	UpdateDeal(id int, deal *Deal) (*Deal, error)
 
 	DeleteDeal(id int) error
@@ -27,5 +33,5 @@ type Deal struct {
 	ProducerId int `json:"producer_id" binding:"required"`
 	Created time.Time `json:"created" binding:"required"`
 	Finished time.Time `json:"finished,omitempty"`
-	Active bool `json:"active"`
+	Complete bool `json:"complete"`
 }

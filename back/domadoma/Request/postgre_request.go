@@ -75,17 +75,11 @@ func (p *postgreRequestBase) ListConsumerRequests(id int) ([]*Request, error) {
 }
 
 func (p *postgreRequestBase) UpdateRequest(id int, request *Request) (*Request, error) {
-	request1 := &Request{Id: id}
-	err := p.db.Select(request1)
+	err := p.db.Update(request)
 	if err != nil {
 		return nil,err
 	}
-	request1 = request
-	err = p.db.Update(request1)
-	if err != nil {
-		return nil,err
-	}
-	return request1, nil
+	return request, nil
 }
 
 func (p *postgreRequestBase) DeleteRequest(id int) error {

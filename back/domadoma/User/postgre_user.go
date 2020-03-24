@@ -49,7 +49,22 @@ func (p *postgreUserBase) CreateUser(user *User) (*User, error) {
 }
 
 func (p *postgreUserBase) GetUser(user *User) (*User, error) {
-	err := p.db.Select(&user)
+	err := error(nil)
+	if user.Id != 0 {
+		err = p.db.Select(&user)
+	} else {
+		if user.UserName != "" {
+			err = p.db.Model(&user).Where("user.user_name = ?",user.UserName).Limit(1).Select()
+		} else {
+			if user.Phone != "" {
+				err = p.db.Model(&user).Where("user.phone = ?",user.Phone).Limit(1).Select()
+			} else {
+				if user.Email != "" {
+					err = p.db.Model(&user).Where("user.email = ?",user.Email).Limit(1).Select()
+				}
+			}
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -66,17 +81,11 @@ func (p *postgreUserBase) ListUsers() ([]*User, error) {
 }
 
 func (p *postgreUserBase) UpdateUser(id int, user *User) (*User, error) {
-	user1 := &User{Id: id}
-	err := p.db.Select(user1)
+	err := p.db.Update(user)
 	if err != nil {
 		return nil,err
 	}
-	user1 = user
-	err = p.db.Update(user1)
-	if err != nil {
-		return nil,err
-	}
-	return user1, nil
+	return user, nil
 }
 
 func (p *postgreUserBase) DeleteUser(id int) error {

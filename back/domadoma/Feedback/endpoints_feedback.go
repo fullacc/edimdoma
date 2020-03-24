@@ -3,6 +3,7 @@ package Feedback
 import (
 	"../Deal"
 	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -28,6 +29,7 @@ func NewFeedbackEndpoints(feedbackBase FeedbackBase) FeedbackEndpoints {
 type FeedbackEndpointsFactory struct{
 	feedbackBase FeedbackBase
 	dealBase     Deal.DealBase
+	userBase     User.UserBase
 }
 
 func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
@@ -111,6 +113,13 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		feedback.ProducerId = dealtogetid.ProducerId
 		feedback.DealId = intid
 		result, err := f.feedbackBase.CreateFeedback(feedback)
+
+		user := &User.User{Id:curruser.UserId}
+		f.userBase.GetUser(user)
+		user.RatingN ++
+		user.RatingTotal += float64(feedback.Value)
+		f.userBase.UpdateUser(curruser.UserId,user)
+
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
@@ -210,6 +219,24 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		feedback.ConsumerId = feedbacktocheck.ConsumerId
 		feedback.ProducerId = feedbacktocheck.ProducerId
 		feedback.DealId = feedbacktocheck.DealId
+		if feedback.Created.IsZero() {
+			feedback.Created = feedbacktocheck.Created
+		}
+
+		if feedback.Text == "" {
+			feedback.Text = feedbacktocheck.Text
+		}
+
+		if feedback.Value == 0 {
+			feedback.Value = feedbacktocheck.Value
+		}
+
+		user := &User.User{Id:curruser.UserId}
+		f.userBase.GetUser(user)
+		user.RatingTotal += float64(feedback.Value) - float64(feedbacktocheck.Value)
+		f.userBase.UpdateUser(curruser.UserId,user)
+
+
 		feedback, err = f.feedbackBase.UpdateFeedback(intid, feedback)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
@@ -254,6 +281,12 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
+
+		user := &User.User{Id:curruser.UserId}
+		f.userBase.GetUser(user)
+		user.RatingTotal -= float64(feedbacktocheck.Value)
+		user.RatingN --
+		f.userBase.UpdateUser(curruser.UserId,user)
 
 		err = f.feedbackBase.DeleteFeedback(intid)
 		if err != nil {

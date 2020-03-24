@@ -82,6 +82,32 @@ func (p *postgreDealBase) ListProducerDeals(id int) ([]*Deal, error) {
 	}
 	return deals, nil
 }
+func (p *postgreDealBase) ListActiveDeals() ([]*Deal, error) {
+	var deals []*Deal
+	err := p.db.Model(&deals).Where("complete = ?", false).Select()
+	if err != nil {
+		return nil, err
+	}
+	return deals,nil
+}
+
+func (p *postgreDealBase) ListActiveConsumerDeals(id int) ([]*Deal, error) {
+	var deals []*Deal
+	err := p.db.Model(&deals).Where("Consumer_Id = ?", id).Where("complete = ?", false).Select()
+	if err != nil {
+		return nil, err
+	}
+	return deals, nil
+}
+
+func (p *postgreDealBase) ListActiveProducerDeals(id int) ([]*Deal, error) {
+	var deals []*Deal
+	err := p.db.Model(&deals).Where("Producer_Id = ?", id).Where("complete = ?", false).Select()
+	if err != nil {
+		return nil, err
+	}
+	return deals, nil
+}
 
 func (p *postgreDealBase) UpdateDeal(id int, deal *Deal) (*Deal, error) {
 	deal1 := &Deal{Id: id}

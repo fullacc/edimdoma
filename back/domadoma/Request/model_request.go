@@ -19,7 +19,7 @@ type RequestBase interface{
 type Request struct {
 	Id int `json:"id"`
 	ConsumerId int `json:"consumer_id" binding:"required"`
-	Name string `json:"name" binding:"required"`
+	Food string `json:"name" binding:"required"`
 	Price int `json:"price" binding:"required"`
 	Quantity int `json:"quantity" binding:"required"`
 	Location []float64 `json:"location" binding:"required"`

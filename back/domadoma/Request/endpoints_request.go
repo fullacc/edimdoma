@@ -177,6 +177,30 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
+		request.Id = requesttocheck.Id
+
+		if request.Food == "" {
+			request.Food = requesttocheck.Food
+		}
+
+		request.ConsumerId = requesttocheck.ConsumerId
+
+		if request.Created.IsZero() {
+			request.Created = requesttocheck.Created
+		}
+
+		if request.Location == nil{
+			request.Location = requesttocheck.Location
+		}
+
+		if request.Price == 0 {
+			request.Price = requesttocheck.Price
+		}
+
+		if request.Quantity == 0 {
+			request.Quantity = requesttocheck.Quantity
+		}
+
 		request, err = f.requestBase.UpdateRequest(intid, request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})

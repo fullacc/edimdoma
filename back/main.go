@@ -129,9 +129,10 @@ func LaunchServer(configpath string) error{
 		api.GET("requests",postgreRequestEndpoints.ListRequests())
 		api.GET("users",postgreUserEndpoints.ListUsers())
 
+
+
 		deals := api.Group("deal")
 		{
-			deals.GET("",postgreDealEndpoints.ListDeals())
 			deals.GET(":dealid",postgreDealEndpoints.GetDeal())
 			deals.DELETE(":dealid",postgreDealEndpoints.DeleteDeal())
 			deals.PUT(":dealid",postgreDealEndpoints.UpdateDeal())
@@ -147,11 +148,13 @@ func LaunchServer(configpath string) error{
 				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
 				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
 			}
-			consumers.GET(":consumerid/offer",postgreOfferEndpoints.ListOffers())
 			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())
 			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())
-			consumers.GET(":consumerid/deal/:dealid",postgreDealEndpoints.GetDeal())
+
 			consumers.POST(":consumerid/deal/:dealid/feedback",postgreFeedbackEndpoints.CreateFeedback())
+			consumers.GET(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.GetFeedback())
+			consumers.PUT(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.UpdateFeedback())
+			consumers.DELETE(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.DeleteFeedback())
 		}
 
 		producers := api.Group("producer")
@@ -164,11 +167,11 @@ func LaunchServer(configpath string) error{
 				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
 				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
 			}
-			producers.GET(":producerid/request",postgreRequestEndpoints.ListRequests())
 			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
-			producers.PUT(":producerid/deal/:dealid",postgreDealEndpoints.CompleteDeal())
+			producers.PATCH(":producerid/deal/:dealid/complete",postgreDealEndpoints.CompleteDeal())
 			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())
-			producers.GET(":producerid/deal/:dealid",postgreDealEndpoints.GetDeal())
+
+			producers.GET(":producerid/feedback",postgreFeedbackEndpoints.ListFeedbacks())
 			offerlogs := producers.Group(":producerid/offerlog")
 			{
 				offerlogs.GET("",postgreOfferLogEndpoints.ListOfferLogs())
@@ -181,16 +184,10 @@ func LaunchServer(configpath string) error{
 		{
 			users.POST("registration",postgreUserEndpoints.CreateUser())
 			users.POST("login",postgreUserEndpoints.LoginUser())
+			users.PATCH("logout",postgreUserEndpoints.LogoutUser())
 			users.GET(":userid",postgreUserEndpoints.GetUser())
 			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
 			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
-			feedbacks := api.Group(":userid/feedback")
-			{
-				feedbacks.GET("",postgreFeedbackEndpoints.ListFeedbacks())
-				feedbacks.GET(":feedbackid",postgreFeedbackEndpoints.GetFeedback())
-				feedbacks.PUT(":feedbackid",postgreFeedbackEndpoints.UpdateFeedback())
-				feedbacks.DELETE(":feedbackid",postgreFeedbackEndpoints.DeleteFeedback())
-			}
 		}
 	}
 

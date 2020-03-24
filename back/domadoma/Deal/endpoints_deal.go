@@ -2,9 +2,12 @@ package Deal
 
 import (
 	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type DealEndpoints interface{
@@ -28,6 +31,8 @@ func NewDealEndpoints(dealBase DealBase) DealEndpoints {
 
 type DealEndpointsFactory struct{
 	dealBase DealBase
+	offerBase Offer.OfferBase
+	requestBase Request.RequestBase
 }
 
 func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
@@ -111,12 +116,17 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
 			return
 		}
-
+		active := c.Query("onlyactive")
 		var deals []*Deal
 		idc := c.Param( "consumerid")
 		idp := c.Param("producerid")
 		if (curruser.Permission == domadoma.Admin || curruser.Permission == domadoma.Manager)&& len(idc)==0 && len(idp) == 0 {
-			deals, err = d.dealBase.ListDeals()
+			if active == "true"{
+				deals, err = d.dealBase.ListActiveDeals()
+			} else {
+				deals, err = d.dealBase.ListDeals()
+			}
+
 			if err != nil {
 				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 				return
@@ -129,7 +139,12 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 					return
 				}
 
-				deals, err = d.dealBase.ListConsumerDeals(intid)
+				if active == "true" {
+					deals, err = d.dealBase.ListActiveConsumerDeals(intid)
+				} else {
+					deals, err = d.dealBase.ListConsumerDeals(intid)
+				}
+
 				if err != nil {
 					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 					return
@@ -142,7 +157,12 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 						return
 					}
 
-					deals, err = d.dealBase.ListProducerDeals(intid)
+					if active == "true" {
+						deals,err = d.dealBase.ListActiveProducerDeals(intid)
+					} else {
+						deals, err = d.dealBase.ListProducerDeals(intid)
+					}
+
 					if err != nil {
 						c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 						return
@@ -246,7 +266,8 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal.Active = true
+		deal.Complete = true
+		deal.Finished = time.Now()
 		result, err := d.dealBase.UpdateDeal(intid,deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})

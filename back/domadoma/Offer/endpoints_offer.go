@@ -177,6 +177,32 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			return
 		}
 
+		if offer.Food == "" {
+			offer.Food = offertocheck.Food
+		}
+
+		offer.ProducerId = offertocheck.ProducerId
+
+		if offer.Created.IsZero() {
+			offer.Created = offertocheck.Created
+		}
+
+		if offer.Location == nil{
+			offer.Location = offertocheck.Location
+		}
+
+		if offer.Price == 0 {
+			offer.Price = offertocheck.Price
+		}
+
+		if offer.InitialQuantity == 0 {
+			offer.InitialQuantity = offertocheck.InitialQuantity
+		}
+
+		if offer.AvailableQuantity == 0 {
+			offer.AvailableQuantity = offertocheck.AvailableQuantity
+		}
+
 		offer, err = f.offerBase.UpdateOffer(intid, offer)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})

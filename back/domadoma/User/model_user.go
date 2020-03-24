@@ -19,7 +19,8 @@ type User struct {
 	PasswordHash string
 	Name string `json:"name" binding:"required"`
 	Surname string `json:"surname" binding:"required"`
-	Rating int
+	RatingTotal float64
+	RatingN float64
 	Phone string `json:"phone" binding:"required"`
 	Email string `json:"email" binding:"required"`
 	City string `json:"city" binding:"required"`

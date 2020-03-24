@@ -2,10 +2,8 @@ package User
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/gin-gonic/gin"
-	"github.com/go-redis/redis"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -25,6 +23,8 @@ type UserEndpoints interface{
 	DeleteUser() func(c *gin.Context)
 
 	LoginUser() func(c *gin.Context)
+
+	LogoutUser() func(c *gin.Context)
 }
 
 
@@ -60,9 +60,28 @@ func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 
 		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:lookupuser.Id}
 		data, err := json.Marshal(input)
-		redisClient := Connect()
+		redisClient := domadoma.Connect()
 		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
 		c.JSON(http.StatusOK,gin.H{"Token":input.Token})
+	}
+}
+
+func (f UserEndpointsFactory) LogoutUser() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		redisClient := domadoma.Connect()
+		_,err = redisClient.Del(curruser.Token).Result()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK,gin.H{"Logged out":curruser.UserId})
 	}
 }
 
@@ -112,30 +131,49 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 				return
 			}
 		}
+
+		usertocheck := &User{Email:user.Email}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such email exists"})
+			return
+		}
+		usertocheck = &User{UserName:user.UserName}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such username exists"})
+			return
+		}
+		usertocheck = &User{Phone:user.Phone}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such phone exists"})
+			return
+		}
+
 		pwd := []byte(user.Password)
 		user.Password = ".!."
 		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
 			return
 		}
 
 		user.PasswordHash = hash
 		result, err := f.userBase.CreateUser(user)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
 			return
 		}
 
 		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:user.Id}
 		data, err := json.Marshal(input)
-		redisClient := Connect()
+		redisClient := domadoma.Connect()
 		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
 		result.PasswordHash=".!."
 		c.JSON(http.StatusCreated,gin.H{"User":result,"Token":input.Token})
 	}
 }
-
 
 func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -205,9 +243,28 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		}
 
 		user.PasswordHash = usertocheck.PasswordHash
-		user.Rating = usertocheck.Rating
+		user.RatingN = usertocheck.RatingN
+		user.RatingTotal = usertocheck.RatingTotal
 		user.Id = usertocheck.Id
 		user.Password = usertocheck.Password
+		if user.UserName == "" {
+			user.UserName=usertocheck.UserName
+		}
+		if user.Name == "" {
+			user.Name=usertocheck.Name
+		}
+		if user.City == "" {
+			user.City=usertocheck.City
+		}
+		if user.Email == "" {
+			user.Email=usertocheck.Email
+		}
+		if user.Phone == "" {
+			user.Phone=usertocheck.Phone
+		}
+		if user.Surname == "" {
+			user.Surname=usertocheck.Surname
+		}
 
 		user, err = f.userBase.UpdateUser(intid, user)
 		if err != nil {
