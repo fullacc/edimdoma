@@ -11,7 +11,7 @@ type RequestBase interface{
 
 	ListConsumerRequests(id int) ([]*Request, error)
 
-	UpdateRequest(id int, request *Request) (*Request, error)
+	UpdateRequest(request *Request) (*Request, error)
 
 	DeleteRequest(id int)  error
 }

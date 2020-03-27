@@ -109,18 +109,12 @@ func (p *postgreDealBase) ListActiveProducerDeals(id int) ([]*Deal, error) {
 	return deals, nil
 }
 
-func (p *postgreDealBase) UpdateDeal(id int, deal *Deal) (*Deal, error) {
-	deal1 := &Deal{Id: id}
-	err := p.db.Select(deal1)
+func (p *postgreDealBase) UpdateDeal(deal *Deal) (*Deal, error) {
+	err := p.db.Update(deal)
 	if err != nil {
 		return nil,err
 	}
-	deal1 = deal
-	err = p.db.Update(deal1)
-	if err != nil {
-		return nil,err
-	}
-	return deal1, nil
+	return deal, nil
 }
 
 func (p *postgreDealBase) DeleteDeal(id int) error {

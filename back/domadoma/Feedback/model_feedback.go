@@ -11,7 +11,7 @@ type FeedbackBase interface{
 
 	ListProducerFeedbacks(id int) ([]*Feedback, error)
 
-	UpdateFeedback(id int, feedback *Feedback) (*Feedback, error)
+	UpdateFeedback(feedback *Feedback) (*Feedback, error)
 
 	DeleteFeedback(id int)  error
 }

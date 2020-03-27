@@ -74,18 +74,12 @@ func (p *postgreOfferBase) ListProducerOffers(id int) ([]*Offer, error){
 	return offers, nil
 }
 
-func (p *postgreOfferBase) UpdateOffer(id int, offer *Offer) (*Offer, error) {
-	offer1 := &Offer{Id: id}
-	err := p.db.Select(offer1)
+func (p *postgreOfferBase) UpdateOffer(offer *Offer) (*Offer, error) {
+	err := p.db.Update(offer)
 	if err != nil {
 		return nil,err
 	}
-	offer1 = offer
-	err = p.db.Update(offer1)
-	if err != nil {
-		return nil,err
-	}
-	return offer1, nil
+	return offer, nil
 }
 
 func (p *postgreOfferBase) DeleteOffer(id int) error {

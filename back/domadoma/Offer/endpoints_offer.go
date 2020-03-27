@@ -75,12 +75,10 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 			return
 		}
 
-		var offer *Offer
+		var offer Offer
 		if err := c.ShouldBindJSON(&offer); err != nil {
-			if err != nil {
-				c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
-				return
-			}
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
+			return
 		}
 
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && offer.ProducerId != curruser.UserId {
@@ -88,7 +86,7 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 			return
 		}
 
-		result, err := f.offerBase.CreateOffer(offer)
+		result, err := f.offerBase.CreateOffer(&offer)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
@@ -166,8 +164,8 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			return
 		}
 
-		offer := &Offer{}
-		if err := c.ShouldBindJSON(offer); err != nil {
+		offer := Offer{}
+		if err := c.ShouldBindJSON(&offer); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
 			return
 		}
@@ -203,13 +201,15 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			offer.AvailableQuantity = offertocheck.AvailableQuantity
 		}
 
-		offer, err = f.offerBase.UpdateOffer(intid, offer)
+		offer.Id = offertocheck.Id
+
+		result, err := f.offerBase.UpdateOffer(&offer)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK,offer)
+		c.JSON(http.StatusOK, result)
 	}
 }
 

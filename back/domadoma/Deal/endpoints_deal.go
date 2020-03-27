@@ -3,6 +3,7 @@ package Deal
 import (
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -32,6 +33,7 @@ func NewDealEndpoints(dealBase DealBase) DealEndpoints {
 type DealEndpointsFactory struct{
 	dealBase DealBase
 	offerBase Offer.OfferBase
+	offerLogBase OfferLog.OfferLogBase
 	requestBase Request.RequestBase
 }
 
@@ -88,13 +90,58 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal := &Deal{}
+		deal := Deal{}
 		if err := c.ShouldBindJSON(&deal); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		result, err := d.dealBase.CreateDeal(deal)
+		reqid := c.Param("requestid")
+		offid := c.Param("offerid")
+		if len(reqid) != 0 {
+			intid, err := strconv.Atoi(reqid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+				return
+			}
+
+			err = d.requestBase.DeleteRequest(intid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error: ":err.Error()})
+				return
+			}
+
+		} else {
+			if len(offid) != 0 {
+				intid, err := strconv.Atoi(offid)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					return
+				}
+
+				offer, err := d.offerBase.GetOffer(intid)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					return
+				}
+
+				offer.AvailableQuantity -= deal.Quantity
+				if offer.AvailableQuantity >0 {
+					offer, err = d.offerBase.UpdateOffer(offer)
+				} else {
+					offerlog := OfferLog.OfferLog(*offer)
+					_,_ = d.offerLogBase.CreateOfferLog(&offerlog)
+					err = d.offerBase.DeleteOffer(intid)
+				}
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error: ":err.Error()})
+					return
+				}
+			}
+		}
+
+		result, err := d.dealBase.CreateDeal(&deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
@@ -214,13 +261,13 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal := &Deal{}
+		deal := Deal{}
 		if err := c.ShouldBindJSON(&deal); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-
-		result, err := d.dealBase.UpdateDeal(intid,deal)
+		deal.Id = intid
+		result, err := d.dealBase.UpdateDeal(&deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
@@ -268,7 +315,7 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 
 		deal.Complete = true
 		deal.Finished = time.Now()
-		result, err := d.dealBase.UpdateDeal(intid,deal)
+		result, err := d.dealBase.UpdateDeal(deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return

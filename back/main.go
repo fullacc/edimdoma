@@ -167,7 +167,7 @@ func LaunchServer(configpath string) error{
 				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
 				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
 			}
-			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
+				producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
 			producers.PATCH(":producerid/deal/:dealid/complete",postgreDealEndpoints.CompleteDeal())
 			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())
 

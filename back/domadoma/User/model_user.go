@@ -7,7 +7,7 @@ type UserBase interface{
 
 	ListUsers() ([]*User, error)
 
-	UpdateUser(id int, user *User) (*User, error)
+	UpdateUser(user *User) (*User, error)
 
 	DeleteUser(id int)  error
 }
@@ -15,12 +15,12 @@ type UserBase interface{
 type User struct {
 	Id int `json:"id,omitempty"`
 	UserName string `json:"user_name" binding:"required"`
-	Password string `json:"password" binding:"-"`
-	PasswordHash string
+	PasswordHash string `json:"-"`
 	Name string `json:"name" binding:"required"`
 	Surname string `json:"surname" binding:"required"`
-	RatingTotal float64
-	RatingN float64
+	RatingTotal float64 `json:"-"`
+	RatingN float64 `json:"-"`
+	Rating float64 `json:"rating" binding:"-"`
 	Phone string `json:"phone" binding:"required"`
 	Email string `json:"email" binding:"required"`
 	City string `json:"city" binding:"required"`

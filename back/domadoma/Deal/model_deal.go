@@ -19,7 +19,7 @@ type DealBase interface {
 
 	ListActiveProducerDeals(id int) ([]*Deal, error)
 
-	UpdateDeal(id int, deal *Deal) (*Deal, error)
+	UpdateDeal(deal *Deal) (*Deal, error)
 
 	DeleteDeal(id int) error
 }

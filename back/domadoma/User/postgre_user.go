@@ -80,7 +80,7 @@ func (p *postgreUserBase) ListUsers() ([]*User, error) {
 	return users,nil
 }
 
-func (p *postgreUserBase) UpdateUser(id int, user *User) (*User, error) {
+func (p *postgreUserBase) UpdateUser( user *User) (*User, error) {
 	err := p.db.Update(user)
 	if err != nil {
 		return nil,err

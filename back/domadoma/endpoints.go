@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-redis/redis"
+	"regexp"
 )
 
 func GetToken(token string) (*UserInfo,error) {
@@ -15,7 +16,7 @@ func GetToken(token string) (*UserInfo,error) {
 	val, err := redisClient.Get(token).Result()
 	uInfo := &UserInfo{}
 	if err == redis.Nil {
-		return nil,errors.New("No such token")
+		return nil,errors.New("no such token")
 	} else if err != nil {
 		return nil,err
 	} else {
@@ -37,4 +38,56 @@ func Connect() *redis.Client {
 	pong, err := client.Ping().Result()
 	fmt.Println(pong, err)
 	return client
+}
+
+func Validator(vid int,s string) (bool,error) {
+	usernameregex := `^([\.\_a-z0-9]{1,30})$`
+	phoneregex := `^[0-9]{10}$`
+	emailregex := `^([a-z0-9_\-\.]+)@([a-z0-9_\-\.]+)\.([a-z]{2,5})$`
+	switch vid{
+	case Usrnm:
+		matched, err := regexp.Match(usernameregex, []byte(s))
+		if err != nil {
+			return false,err
+		}
+		if !matched {
+			return false, nil
+		}
+		matched, err = regexp.Match(`([a-z]{1,30})`, []byte(s))
+		if err != nil {
+			return false,err
+		}
+		if !matched {
+			return false, nil
+		}
+		if s[0]=='.' || s[len(s)-1]=='.'{
+			return false, nil
+		}
+		for i,v := range s{
+			if v=='.' && s[i+1]=='.'{
+				return false,nil
+			}
+		}
+		return true,nil
+	case Phn:
+		matched, err := regexp.Match(phoneregex, []byte(s))
+		if err != nil {
+			return false,err
+		}
+		if !matched {
+			return false, nil
+		}
+		return true,nil
+	case Eml:
+		matched, err := regexp.Match(emailregex, []byte(s))
+		if err != nil {
+			return false,err
+		}
+		if !matched {
+			return false, nil
+		}
+		return true,nil
+	default:
+		return false,errors.New("unknown tag")
+	}
 }

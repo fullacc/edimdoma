@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -37,51 +38,98 @@ type UserEndpointsFactory struct{
 	userBase UserBase
 }
 
-func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
+func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var user *domadoma.UserLogin
+		var user domadoma.UserRegister
 		if err := c.ShouldBindJSON(&user); err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ":err.Error()})
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
 			return
 		}
 
-		lookupuser := &User{UserName: user.UserName}
-		lookupuser, err := f.userBase.GetUser(lookupuser)
+		user.Email = strings.ToLower(user.Email)
+		matched, err := domadoma.Validator(domadoma.Eml,user.Email)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Password))
+		if !matched{
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Email input"})
+			return
+		}
+
+		usertocheck := &User{Email:user.Email}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such email exists"})
+			return
+		}
+
+		user.UserName = strings.ToLower(user.UserName)
+		matched, err = domadoma.Validator(domadoma.Usrnm,user.UserName)
 		if err != nil {
-			c.JSON(http.StatusForbidden,gin.H{"Error: ": "Wrong password"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
 			return
 		}
 
-		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:lookupuser.Id}
+		if !matched{
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid username input"})
+			return
+		}
+
+		usertocheck = &User{UserName:user.UserName}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such username exists"})
+			return
+		}
+
+		matched, err = domadoma.Validator(domadoma.Phn,user.Phone)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+			return
+		}
+
+		if !matched{
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
+			return
+		}
+
+		usertocheck = &User{Phone:user.Phone}
+		usertocheck,_ = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil{
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such phone exists"})
+			return
+		}
+
+		pwd := []byte(user.Password)
+		newuser := &User{}
+		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
+			return
+		}
+
+		newuser.PasswordHash = hash
+		newuser.UserName = user.UserName
+		newuser.Email = user.Email
+		newuser.Phone = user.Phone
+
+		newuser.Name = "Sultan"
+		newuser.Surname = "Nur"
+		newuser.City = "Almaty"
+		result, err := f.userBase.CreateUser(newuser)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
+			return
+		}
+
+		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:result.Id}
 		data, err := json.Marshal(input)
 		redisClient := domadoma.Connect()
 		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
-		c.JSON(http.StatusOK,gin.H{"Token":input.Token})
-	}
-}
-
-func (f UserEndpointsFactory) LogoutUser() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
-			return
-		}
-
-		redisClient := domadoma.Connect()
-		_,err = redisClient.Del(curruser.Token).Result()
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
-			return
-		}
-
-		c.JSON(http.StatusOK,gin.H{"Logged out":curruser.UserId})
+		result.PasswordHash=".!."
+		c.JSON(http.StatusCreated,gin.H{"User":result,"Token":input.Token})
 	}
 }
 
@@ -119,59 +167,6 @@ func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 
 		user.PasswordHash=".!."
 		c.JSON(http.StatusOK,user)
-	}
-}
-
-func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
-	return func(c *gin.Context) {
-		var user *User
-		if err := c.ShouldBindJSON(&user); err != nil {
-			if err != nil {
-				c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
-				return
-			}
-		}
-
-		usertocheck := &User{Email:user.Email}
-		usertocheck,_ = f.userBase.GetUser(usertocheck)
-		if usertocheck != nil{
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such email exists"})
-			return
-		}
-		usertocheck = &User{UserName:user.UserName}
-		usertocheck,_ = f.userBase.GetUser(usertocheck)
-		if usertocheck != nil{
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such username exists"})
-			return
-		}
-		usertocheck = &User{Phone:user.Phone}
-		usertocheck,_ = f.userBase.GetUser(usertocheck)
-		if usertocheck != nil{
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"Such phone exists"})
-			return
-		}
-
-		pwd := []byte(user.Password)
-		user.Password = ".!."
-		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
-			return
-		}
-
-		user.PasswordHash = hash
-		result, err := f.userBase.CreateUser(user)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err})
-			return
-		}
-
-		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:user.Id}
-		data, err := json.Marshal(input)
-		redisClient := domadoma.Connect()
-		err = redisClient.Set(input.Token, data, 120 * time.Minute).Err()
-		result.PasswordHash=".!."
-		c.JSON(http.StatusCreated,gin.H{"User":result,"Token":input.Token})
 	}
 }
 
@@ -236,8 +231,8 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			return
 		}
 
-		user := &User{}
-		if err := c.ShouldBindJSON(user); err != nil {
+		user := User{}
+		if err := c.ShouldBindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
 			return
 		}
@@ -246,9 +241,20 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		user.RatingN = usertocheck.RatingN
 		user.RatingTotal = usertocheck.RatingTotal
 		user.Id = usertocheck.Id
-		user.Password = usertocheck.Password
 		if user.UserName == "" {
-			user.UserName=usertocheck.UserName
+			user.UserName = usertocheck.UserName
+		} else {
+			user.UserName = strings.ToLower(user.UserName)
+			matched, err := domadoma.Validator(domadoma.Usrnm,user.UserName)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+				return
+			}
+
+			if !matched{
+				c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
+				return
+			}
 		}
 		if user.Name == "" {
 			user.Name=usertocheck.Name
@@ -258,23 +264,43 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		}
 		if user.Email == "" {
 			user.Email=usertocheck.Email
+		} else {
+			user.Email = strings.ToLower(user.Email)
+			matched, err := domadoma.Validator(domadoma.Eml,user.Email)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+				return
+			}
+
+			if !matched{
+				c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
+				return
+			}
 		}
 		if user.Phone == "" {
 			user.Phone=usertocheck.Phone
+		} else {
+			matched, err := domadoma.Validator(domadoma.Phn,user.Phone)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+				return
+			}
+
+			if !matched{
+				c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
+				return
+			}
 		}
 		if user.Surname == "" {
 			user.Surname=usertocheck.Surname
 		}
 
-		user, err = f.userBase.UpdateUser(intid, user)
+		result, err := f.userBase.UpdateUser(&user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 			return
 		}
-
-		user.PasswordHash = ".!."
-		user.Password = ".!."
-		c.JSON(http.StatusOK,user)
+		c.JSON(http.StatusOK,result)
 	}
 }
 
@@ -318,3 +344,82 @@ func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 	}
 }
 
+func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
+	return func(c *gin.Context) {
+		var user domadoma.UserLogin
+		if err := c.ShouldBindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ":err.Error()})
+			return
+		}
+		user.Login = strings.ToLower(user.Login)
+
+		lookupuser := &User{}
+		matched, err := domadoma.Validator(domadoma.Phn,user.Login)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+			return
+		}
+		if matched{
+			lookupuser.Phone = user.Login
+		}else {
+			matched, err = domadoma.Validator(domadoma.Usrnm,user.Login)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+				return
+			}
+			if matched {
+				lookupuser.Email = user.Login
+			} else {
+				matched, err = domadoma.Validator(domadoma.Eml,user.Login)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
+					return
+				}
+				if matched {
+					lookupuser.UserName = user.Login
+				} else {
+					c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid login input"})
+					return
+				}
+			}
+		}
+
+
+		lookupuser, err = f.userBase.GetUser(lookupuser)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			return
+		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Password))
+		if err != nil {
+			c.JSON(http.StatusForbidden,gin.H{"Error: ": "Wrong password"})
+			return
+		}
+
+		input := &domadoma.UserInfo{Permission: domadoma.Regular,Token:xid.New().String(),UserId:lookupuser.Id}
+		data, err := json.Marshal(input)
+		redisClient := domadoma.Connect()
+		err = redisClient.Set(input.Token, data, 3 * time.Hour).Err()
+		c.JSON(http.StatusOK,gin.H{"Token":input.Token})
+	}
+}
+
+func (f UserEndpointsFactory) LogoutUser() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		redisClient := domadoma.Connect()
+		_,err = redisClient.Del(curruser.Token).Result()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK,gin.H{"Logged out":curruser.UserId})
+	}
+}

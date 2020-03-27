@@ -74,18 +74,12 @@ func (p *postgreOfferLogBase) ListProducerOfferLogs(id int) ([]*OfferLog, error)
 	return offerLogs, nil
 }
 
-func (p *postgreOfferLogBase) UpdateOfferLog(id int, offerLog *OfferLog) (*OfferLog, error) {
-	offerLog1 := &OfferLog{Id: id}
-	err := p.db.Select(offerLog1)
+func (p *postgreOfferLogBase) UpdateOfferLog(offerLog *OfferLog) (*OfferLog, error) {
+	err := p.db.Update(offerLog)
 	if err != nil {
 		return nil,err
 	}
-	offerLog1 = offerLog
-	err = p.db.Update(offerLog1)
-	if err != nil {
-		return nil,err
-	}
-	return offerLog1, nil
+	return offerLog, nil
 }
 
 func (p *postgreOfferLogBase) DeleteOfferLog(id int) error {

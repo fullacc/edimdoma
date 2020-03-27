@@ -76,12 +76,10 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 			return
 		}
 
-		var request *Request
+		var request Request
 		if err := c.ShouldBindJSON(&request); err != nil {
-			if err != nil {
-				c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
-				return
-			}
+			c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
+			return
 		}
 
 		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != request.ConsumerId {
@@ -89,7 +87,7 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 			return
 		}
 
-		result, err := f.requestBase.CreateRequest(request)
+		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
@@ -166,8 +164,8 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		request := &Request{}
-		if err := c.ShouldBindJSON(request); err != nil {
+		request := Request{}
+		if err := c.ShouldBindJSON(&request); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
 			return
 		}
@@ -201,13 +199,13 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			request.Quantity = requesttocheck.Quantity
 		}
 
-		request, err = f.requestBase.UpdateRequest(intid, request)
+		result, err := f.requestBase.UpdateRequest(&request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK,request)
+		c.JSON(http.StatusOK,result)
 	}
 }
 

@@ -74,7 +74,7 @@ func (p *postgreRequestBase) ListConsumerRequests(id int) ([]*Request, error) {
 	return requests,nil
 }
 
-func (p *postgreRequestBase) UpdateRequest(id int, request *Request) (*Request, error) {
+func (p *postgreRequestBase) UpdateRequest( request *Request) (*Request, error) {
 	err := p.db.Update(request)
 	if err != nil {
 		return nil,err

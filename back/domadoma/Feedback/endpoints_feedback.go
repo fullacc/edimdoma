@@ -103,7 +103,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		var feedback *Feedback
+		var feedback Feedback
 		if err := c.ShouldBindJSON(&feedback); err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
 			return
@@ -112,13 +112,13 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		feedback.ConsumerId = dealtogetid.ConsumerId
 		feedback.ProducerId = dealtogetid.ProducerId
 		feedback.DealId = intid
-		result, err := f.feedbackBase.CreateFeedback(feedback)
+		result, err := f.feedbackBase.CreateFeedback(&feedback)
 
 		user := &User.User{Id:curruser.UserId}
-		f.userBase.GetUser(user)
+		user,_ = f.userBase.GetUser(user)
 		user.RatingN ++
 		user.RatingTotal += float64(feedback.Value)
-		f.userBase.UpdateUser(curruser.UserId,user)
+		_,_ = f.userBase.UpdateUser(user)
 
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
@@ -205,7 +205,7 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedback := &Feedback{}
+		feedback := Feedback{}
 		if err := c.ShouldBindJSON(feedback); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
 			return
@@ -232,17 +232,17 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		}
 
 		user := &User.User{Id:curruser.UserId}
-		f.userBase.GetUser(user)
+		user,_ = f.userBase.GetUser(user)
 		user.RatingTotal += float64(feedback.Value) - float64(feedbacktocheck.Value)
-		f.userBase.UpdateUser(curruser.UserId,user)
+		_,_ = f.userBase.UpdateUser(user)
 
-
-		feedback, err = f.feedbackBase.UpdateFeedback(intid, feedback)
+		feedback.Id = intid
+		result, err := f.feedbackBase.UpdateFeedback(&feedback)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK,feedback)
+		c.JSON(http.StatusOK,result)
 	}
 }
 
@@ -283,10 +283,10 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 		}
 
 		user := &User.User{Id:curruser.UserId}
-		f.userBase.GetUser(user)
+		user, _ = f.userBase.GetUser(user)
 		user.RatingTotal -= float64(feedbacktocheck.Value)
 		user.RatingN --
-		f.userBase.UpdateUser(curruser.UserId,user)
+		_, _ = f.userBase.UpdateUser(user)
 
 		err = f.feedbackBase.DeleteFeedback(intid)
 		if err != nil {

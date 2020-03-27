@@ -65,7 +65,7 @@ func (p *postgreFeedbackBase) ListFeedbacks() ([]*Feedback, error) {
 	return feedbacks,nil
 }
 
-func (p *postgreFeedbackBase) ListProducerDeals(id int) ([]*Feedback, error) {
+func (p *postgreFeedbackBase) ListProducerFeedbacks(id int) ([]*Feedback, error) {
 	var feedbacks []*Feedback
 	err := p.db.Model(&feedbacks).Where("Producer_Id = ?", id).Select()
 	if err != nil {
@@ -74,18 +74,12 @@ func (p *postgreFeedbackBase) ListProducerDeals(id int) ([]*Feedback, error) {
 	return feedbacks, nil
 }
 
-func (p *postgreFeedbackBase) UpdateFeedback(id int, feedback *Feedback) (*Feedback, error) {
-	feedback1 := &Feedback{Id: id}
-	err := p.db.Select(feedback1)
+func (p *postgreFeedbackBase) UpdateFeedback( feedback *Feedback) (*Feedback, error) {
+	err := p.db.Update(feedback)
 	if err != nil {
 		return nil,err
 	}
-	feedback1 = feedback
-	err = p.db.Update(feedback1)
-	if err != nil {
-		return nil,err
-	}
-	return feedback1, nil
+	return feedback, nil
 }
 
 func (p *postgreFeedbackBase) DeleteFeedback(id int) error {

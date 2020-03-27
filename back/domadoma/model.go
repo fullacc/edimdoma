@@ -17,13 +17,26 @@ const (
 	Regular
 )
 
+const (
+	Usrnm = iota
+	Phn
+	Eml
+)
+
 type UserInfo struct {
 	Token string
 	Permission int
 	UserId int
 }
 
-type UserLogin struct {
+type UserRegister struct {
 	UserName string `json:"user_name"`
+	Email string `json:"email"`
+	Phone string `json:"phone"`
 	Password string `json:"password"`
+}
+
+type UserLogin struct {
+	Login string `json:"login" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }

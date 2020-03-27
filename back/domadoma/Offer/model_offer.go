@@ -13,14 +13,14 @@ type OfferBase interface{
 
 	ListProducerOffers(id int)  ([]*Offer, error)
 
-	UpdateOffer(id int, offer *Offer) (*Offer, error)
+	UpdateOffer(offer *Offer) (*Offer, error)
 
 	DeleteOffer(id int)  error
 }
 
 type Offer struct {
 	Id int `json:"id"`
-	ProducerId int `json:"producer_id"`
+	ProducerId int `json:"producer_id" binding:"required"`
 	Food string `json:"name" binding:"required"`
 	Price int `json:"price" binding:"required"`
 	InitialQuantity int `json:"initial_quantity" binding:"required"`

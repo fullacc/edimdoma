@@ -68,14 +68,14 @@ func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
 func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		CHECKIFAUTHORIZED
-		var offerLog *OfferLog
+		var offerLog OfferLog
 		if err := c.ShouldBindJSON(&offerLog); err != nil {
 			if err != nil {
 				c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
 				return
 			}
 		}
-		result, err := f.offerLogBase.CreateOfferLog(offerLog)
+		result, err := f.offerLogBase.CreateOfferLog(&offerLog)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
 			return
