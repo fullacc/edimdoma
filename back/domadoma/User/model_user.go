@@ -20,7 +20,7 @@ type User struct {
 	Surname string `json:"surname" binding:"required"`
 	RatingTotal float64 `json:"-"`
 	RatingN float64 `json:"-"`
-	Rating float64 `json:"rating" binding:"-"`
+	Rating float64 `json:"rating"`
 	Phone string `json:"phone" binding:"required"`
 	Email string `json:"email" binding:"required"`
 	City string `json:"city" binding:"required"`

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type FeedbackEndpoints interface{
@@ -75,55 +76,69 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		id := c.Param( "consumerid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			return
+		}
+
+		consumerid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			return
+		}
+
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != consumerid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
-		id := c.Param("dealid")
+		feedback := Feedback{}
+		err = c.ShouldBindJSON(&feedback)
+		if err != nil {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
+			return
+		}
+
+		id = c.Param( "dealid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "No id given"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
 			return
 		}
 
-		intid, err := strconv.Atoi(id)
-		if err!=nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		dealid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
 		}
 
-		dealtogetid, err := f.dealBase.GetDeal(intid)
+		dealtogetid, err := f.dealBase.GetDeal(dealid)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 			return
 		}
 
-		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && consumerid != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
-			return
-		}
-
-		var feedback Feedback
-		if err := c.ShouldBindJSON(&feedback); err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		feedback.ConsumerId = dealtogetid.ConsumerId
 		feedback.ProducerId = dealtogetid.ProducerId
-		feedback.DealId = intid
+		feedback.Created = time.Now()
+		feedback.DealId = dealtogetid.Id
 		result, err := f.feedbackBase.CreateFeedback(&feedback)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+			return
+		}
 
-		user := &User.User{Id:curruser.UserId}
+		user := &User.User{Id:dealtogetid.ProducerId}
 		user,_ = f.userBase.GetUser(user)
 		user.RatingN ++
 		user.RatingTotal += float64(feedback.Value)
+		user.Rating = user.RatingTotal / user.RatingN
 		_,_ = f.userBase.UpdateUser(user)
 
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
-			return
-		}
 
 		c.JSON(http.StatusCreated,result)
 	}
@@ -205,8 +220,9 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedback := Feedback{}
-		if err := c.ShouldBindJSON(feedback); err != nil {
+		feedback := &Feedback{}
+		err = c.ShouldBindJSON(feedback)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
 			return
 		}
@@ -234,10 +250,11 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		user := &User.User{Id:curruser.UserId}
 		user,_ = f.userBase.GetUser(user)
 		user.RatingTotal += float64(feedback.Value) - float64(feedbacktocheck.Value)
+		user.Rating = user.RatingTotal / user.RatingN
 		_,_ = f.userBase.UpdateUser(user)
 
 		feedback.Id = intid
-		result, err := f.feedbackBase.UpdateFeedback(&feedback)
+		result, err := f.feedbackBase.UpdateFeedback(feedback)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 			return

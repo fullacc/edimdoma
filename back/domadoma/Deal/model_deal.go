@@ -26,12 +26,13 @@ type DealBase interface {
 
 
 type Deal struct {
-	Id int `json:"id" binding:"required"`
-	Food string `json:"name" binding:"required"`
+	Id int `json:"id"`
+	Food string `json:"name"`
+	Price int `json:"price" binding:"required"`
 	Quantity int `json:"quantity" binding:"required"`
-	ConsumerId int `json:"consumer_id" binding:"required"`
-	ProducerId int `json:"producer_id" binding:"required"`
-	Created time.Time `json:"created" binding:"required"`
+	ConsumerId int `json:"consumer_id"`
+	ProducerId int `json:"producer_id"`
+	Created time.Time `json:"created"`
 	Finished time.Time `json:"finished,omitempty"`
 	Complete bool `json:"complete"`
 }

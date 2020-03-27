@@ -91,20 +91,55 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			return
 		}
 
+		reqid := c.Param("requestid")
+		offid := c.Param("offerid")
+
 		deal := Deal{}
-		if err := c.ShouldBindJSON(&deal); err != nil {
+		err = c.ShouldBindJSON(&deal)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
-		reqid := c.Param("requestid")
-		offid := c.Param("offerid")
+		if deal.Quantity < 1 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"Wrong quantity"})
+			return
+		}
+
+		if deal.Price < 1{
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"Wrong price"})
+			return
+		}
+
 		if len(reqid) != 0 {
 			intid, err := strconv.Atoi(reqid)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 				return
 			}
+
+			request, err := d.requestBase.GetRequest(intid)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				return
+			}
+
+			id := c.Param("producerid")
+			producerid, err := strconv.Atoi(id)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				return
+			}
+
+			if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != producerid {
+				c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+				return
+			}
+
+			deal.Quantity = request.Quantity
+			deal.Food = request.Food
+			deal.ConsumerId = request.ConsumerId
+			deal.ProducerId = producerid
 
 			err = d.requestBase.DeleteRequest(intid)
 			if err != nil {
@@ -126,8 +161,29 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 					return
 				}
 
+				id := c.Param("consumerid")
+				consumerid, err := strconv.Atoi(id)
+				if err != nil {
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					return
+				}
+
+				if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != consumerid {
+					c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+					return
+				}
+
+				deal.Food = offer.Food
+				deal.ConsumerId = consumerid
+				deal.ProducerId = offer.ProducerId
+
+				if offer.AvailableQuantity < deal.Quantity {
+					c.JSON(http.StatusBadRequest,gin.H{"Error":"too big quantity, not enough available"})
+					return
+				}
+
 				offer.AvailableQuantity -= deal.Quantity
-				if offer.AvailableQuantity >0 {
+				if offer.AvailableQuantity != 0 {
 					offer, err = d.offerBase.UpdateOffer(offer)
 				} else {
 					offerlog := OfferLog.OfferLog(*offer)
@@ -141,7 +197,8 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 				}
 			}
 		}
-
+		deal.Created = time.Now()
+		deal.Complete = false
 		result, err := d.dealBase.CreateDeal(&deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
@@ -233,8 +290,20 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
+/*
+		id := c.Param("consumerid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			return
+		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		userid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			return
+		}*/
+
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager /*&& curruser.UserId != userid*/{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -257,18 +326,24 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager /*&& userid != dealtogetid.ProducerId && userid != dealtogetid.ConsumerId*/{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
-		deal := Deal{}
-		if err := c.ShouldBindJSON(&deal); err != nil {
+		deal := &Deal{}
+		err = c.ShouldBindJSON(&deal)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
-		deal.Id = intid
-		result, err := d.dealBase.UpdateDeal(&deal)
+
+		deal.Id = dealtogetid.Id
+		deal.ProducerId = dealtogetid.ProducerId
+		deal.ConsumerId = dealtogetid.ConsumerId
+		deal.Created = dealtogetid.Created
+
+		result, err := d.dealBase.UpdateDeal(deal)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return

@@ -43,7 +43,8 @@ type UserEndpointsFactory struct{
 func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		var user UserRegister
-		if err := c.ShouldBindJSON(&user); err != nil {
+		err := c.ShouldBindJSON(&user)
+		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 			return
 		}
@@ -117,6 +118,9 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 		newuser.Email = user.Email
 		newuser.Phone = user.Phone
 
+		newuser.RatingN = 0
+		newuser.RatingTotal = 0
+		newuser.Rating = 0
 		newuser.Name = "Sultan"
 		newuser.Surname = "Nur"
 		newuser.City = "Almaty"
@@ -233,8 +237,9 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			return
 		}
 
-		user := User{}
-		if err := c.ShouldBindJSON(&user); err != nil {
+		user := &User{}
+		err = c.ShouldBindJSON(&user)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
 			return
 		}
@@ -242,6 +247,7 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		user.PasswordHash = usertocheck.PasswordHash
 		user.RatingN = usertocheck.RatingN
 		user.RatingTotal = usertocheck.RatingTotal
+		user.Rating = usertocheck.RatingTotal / usertocheck.RatingN
 		user.Id = usertocheck.Id
 		if user.UserName == "" {
 			user.UserName = usertocheck.UserName
@@ -297,12 +303,12 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			user.Surname=usertocheck.Surname
 		}
 
-		result, err := f.userBase.UpdateUser(&user)
+		_, err = f.userBase.UpdateUser(user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 			return
 		}
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK,gin.H{"udpated user":intid})
 	}
 }
 
@@ -349,7 +355,8 @@ func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 func (f UserEndpointsFactory) LoginUser() func (c *gin.Context) {
 	return func(c *gin.Context) {
 		var user UserLogin
-		if err := c.ShouldBindJSON(&user); err != nil {
+		err := c.ShouldBindJSON(&user)
+		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ":err.Error()})
 			return
 		}

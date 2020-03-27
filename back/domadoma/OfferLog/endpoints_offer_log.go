@@ -70,7 +70,8 @@ func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		CHECKIFAUTHORIZED
 		var offerLog OfferLog
-		if err := c.ShouldBindJSON(&offerLog); err != nil {
+		err := c.ShouldBindJSON(&offerLog)
+		if err != nil {
 			if err != nil {
 				c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 				return

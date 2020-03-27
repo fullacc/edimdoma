@@ -76,8 +76,9 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 			return
 		}
 
-		var offer Offer
-		if err := c.ShouldBindJSON(&offer); err != nil {
+		offer := Offer{}
+		err = c.ShouldBindJSON(&offer)
+		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 			return
 		}
@@ -165,8 +166,9 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			return
 		}
 
-		offer := Offer{}
-		if err := c.ShouldBindJSON(&offer); err != nil {
+		offer := &Offer{}
+		err = c.ShouldBindJSON(&offer)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
 			return
 		}
@@ -204,7 +206,7 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 
 		offer.Id = offertocheck.Id
 
-		result, err := f.offerBase.UpdateOffer(&offer)
+		result, err := f.offerBase.UpdateOffer(offer)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 			return

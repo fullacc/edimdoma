@@ -22,6 +22,6 @@ type Feedback struct {
 	ConsumerId int `json:"consumer_id"`
 	Value int `json:"value" binding:"required"`
 	Text string `json:"text" binding:"required"`
-	Created time.Time `json:"created" binding:"required"`
+	Created time.Time `json:"created"`
 	DealId int `json:"deal_id"`
 }

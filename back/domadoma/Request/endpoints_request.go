@@ -72,21 +72,31 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		id := c.Param("consumerid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			return
+		}
+
+		userid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			return
+		}
+
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
-		var request Request
-		if err := c.ShouldBindJSON(&request); err != nil {
+		request := Request{}
+		err = c.ShouldBindJSON(&request)
+		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != request.ConsumerId {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
-			return
-		}
+		request.ConsumerId = userid
 
 		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
@@ -142,12 +152,24 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		id := c.Param("consumerid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			return
+		}
+
+		userid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			return
+		}
+
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
-		id := c.Param("requestid")
+		id = c.Param("requestid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
 			return
@@ -165,13 +187,14 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		request := Request{}
-		if err := c.ShouldBindJSON(&request); err != nil {
+		request := &Request{}
+		err = c.ShouldBindJSON(&request)
+		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && requesttocheck.ConsumerId != curruser.UserId && request.ConsumerId != requesttocheck.ConsumerId {
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && requesttocheck.ConsumerId != userid {
 			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
@@ -200,7 +223,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			request.Quantity = requesttocheck.Quantity
 		}
 
-		result, err := f.requestBase.UpdateRequest(&request)
+		result, err := f.requestBase.UpdateRequest(request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 			return
@@ -218,12 +241,24 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		id := c.Param("consumerid")
+		if len(id) == 0 {
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			return
+		}
+
+		userid, err := strconv.Atoi(id)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			return
+		}
+
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
-		id := c.Param("requestid")
+		id = c.Param("requestid")
 		if len(id) == 0 {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
 			return
@@ -241,7 +276,7 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != requesttocheck.ConsumerId{
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && userid != requesttocheck.ConsumerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}

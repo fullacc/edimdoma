@@ -122,12 +122,12 @@ func LaunchServer(configpath string) error{
 	api := router.Group("api")
 	{
 
-		api.GET("deals",postgreDealEndpoints.ListDeals())
-		api.GET("feedbacks",postgreFeedbackEndpoints.ListFeedbacks())
-		api.GET("offers",postgreOfferEndpoints.ListOffers())
-		api.GET("offer_logs",postgreOfferLogEndpoints.ListOfferLogs())
-		api.GET("requests",postgreRequestEndpoints.ListRequests())
-		api.GET("users",postgreUserEndpoints.ListUsers())
+		api.GET("deal",postgreDealEndpoints.ListDeals())
+		api.GET("feedback",postgreFeedbackEndpoints.ListFeedbacks())
+		api.GET("offer",postgreOfferEndpoints.ListOffers())
+		api.GET("offer_log",postgreOfferLogEndpoints.ListOfferLogs())
+		api.GET("request",postgreRequestEndpoints.ListRequests())
+		api.GET("user",postgreUserEndpoints.ListUsers())
 
 
 
@@ -136,6 +136,7 @@ func LaunchServer(configpath string) error{
 			deals.GET(":dealid",postgreDealEndpoints.GetDeal())
 			deals.DELETE(":dealid",postgreDealEndpoints.DeleteDeal())
 			deals.PUT(":dealid",postgreDealEndpoints.UpdateDeal())
+			deals.PATCH(":dealid/complete",postgreDealEndpoints.CompleteDeal())
 		}
 
 		consumers := api.Group("consumer")
@@ -148,10 +149,10 @@ func LaunchServer(configpath string) error{
 				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
 				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
 			}
-			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())
-			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())
+			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())//needs quantity and price field
+			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())//requires onlyactive query
 
-			consumers.POST(":consumerid/deal/:dealid/feedback",postgreFeedbackEndpoints.CreateFeedback())
+			consumers.POST(":consumerid/deal/:dealid/feedback",postgreFeedbackEndpoints.CreateFeedback())//only value and text
 			consumers.GET(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.GetFeedback())
 			consumers.PUT(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.UpdateFeedback())
 			consumers.DELETE(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.DeleteFeedback())
@@ -167,9 +168,8 @@ func LaunchServer(configpath string) error{
 				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
 				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
 			}
-				producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())
-			producers.PATCH(":producerid/deal/:dealid/complete",postgreDealEndpoints.CompleteDeal())
-			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())
+			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())//needs price only
+			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())//requires onlyactive query
 
 			producers.GET(":producerid/feedback",postgreFeedbackEndpoints.ListFeedbacks())
 			offerlogs := producers.Group(":producerid/offerlog")
@@ -188,7 +188,7 @@ func LaunchServer(configpath string) error{
 			users.GET(":userid",postgreUserEndpoints.GetUser())
 			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
 			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
-			users.PUT(":userid",postgreUserEndpoints.ChangePassword())
+			users.PUT(":userid/changepassword",postgreUserEndpoints.ChangePassword())
 		}
 	}
 
