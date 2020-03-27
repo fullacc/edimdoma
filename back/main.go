@@ -188,6 +188,7 @@ func LaunchServer(configpath string) error{
 			users.GET(":userid",postgreUserEndpoints.GetUser())
 			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
 			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
+			users.PUT(":userid",postgreUserEndpoints.ChangePassword())
 		}
 	}
 

@@ -36,30 +36,30 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		id := c.Param( "feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		feedback, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
@@ -71,12 +71,12 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -98,14 +98,14 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission!= domadoma.Admin && curruser.Permission!= domadoma.Manager && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		var feedback Feedback
 		if err := c.ShouldBindJSON(&feedback); err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
 			return
 		}
 
@@ -121,7 +121,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		_,_ = f.userBase.UpdateUser(user)
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
@@ -133,21 +133,21 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular{
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		var feedbacks []*Feedback
 		idp := c.Param("producerid")
-		if (curruser.Permission == domadoma.Admin || curruser.Permission == domadoma.Manager)&&len(idp) == 0 {
+		if (curruser.Permission == User.Admin || curruser.Permission == User.Manager)&&len(idp) == 0 {
 			feedbacks, err = f.feedbackBase.ListFeedbacks()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 				return
 			}
 
@@ -155,18 +155,18 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 			if len(idp) != 0 {
 				intid, err := strconv.Atoi(idp)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 
 				feedbacks, err = f.feedbackBase.ListProducerFeedbacks(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 
 			} else {
-					c.JSON(http.StatusForbidden,gin.H{"Error: ": "Not allowed"})
+					c.JSON(http.StatusForbidden,gin.H{"Error ": "Not allowed"})
 					return
 				}
 			}
@@ -178,41 +178,41 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular{
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		id := c.Param("feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		feedback := Feedback{}
 		if err := c.ShouldBindJSON(feedback); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -239,7 +239,7 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		feedback.Id = intid
 		result, err := f.feedbackBase.UpdateFeedback(&feedback)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 			return
 		}
 		c.JSON(http.StatusOK,result)
@@ -250,35 +250,35 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular{
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		id := c.Param("feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error: ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -290,7 +290,7 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 
 		err = f.feedbackBase.DeleteFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 

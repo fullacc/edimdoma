@@ -4,17 +4,18 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/go-redis/redis"
 	"regexp"
 )
 
-func GetToken(token string) (*UserInfo,error) {
+func GetToken(token string) (*User.UserInfo,error) {
 	if len(token) == 0 {
 		return nil,errors.New("no token provided")
 	}
 	redisClient := Connect()
 	val, err := redisClient.Get(token).Result()
-	uInfo := &UserInfo{}
+	uInfo := &User.UserInfo{}
 	if err == redis.Nil {
 		return nil,errors.New("no such token")
 	} else if err != nil {
@@ -45,7 +46,7 @@ func Validator(vid int,s string) (bool,error) {
 	phoneregex := `^[0-9]{10}$`
 	emailregex := `^([a-z0-9_\-\.]+)@([a-z0-9_\-\.]+)\.([a-z]{2,5})$`
 	switch vid{
-	case Usrnm:
+	case User.Usrnm:
 		matched, err := regexp.Match(usernameregex, []byte(s))
 		if err != nil {
 			return false,err
@@ -69,7 +70,7 @@ func Validator(vid int,s string) (bool,error) {
 			}
 		}
 		return true,nil
-	case Phn:
+	case User.Phn:
 		matched, err := regexp.Match(phoneregex, []byte(s))
 		if err != nil {
 			return false,err
@@ -78,7 +79,7 @@ func Validator(vid int,s string) (bool,error) {
 			return false, nil
 		}
 		return true,nil
-	case Eml:
+	case User.Eml:
 		matched, err := regexp.Match(emailregex, []byte(s))
 		if err != nil {
 			return false,err

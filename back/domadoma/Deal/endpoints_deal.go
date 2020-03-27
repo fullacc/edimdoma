@@ -5,6 +5,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -41,12 +42,12 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden,gin.H{"Error: ":"Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
 			return
 		}
 
@@ -58,18 +59,18 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
 		deal, err := d.dealBase.GetDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
-			c.JSON(http.StatusForbidden,gin.H{"Error :": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
+			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -81,12 +82,12 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -101,13 +102,13 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 		if len(reqid) != 0 {
 			intid, err := strconv.Atoi(reqid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 				return
 			}
 
 			err = d.requestBase.DeleteRequest(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error: ":err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 				return
 			}
 
@@ -115,13 +116,13 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			if len(offid) != 0 {
 				intid, err := strconv.Atoi(offid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 
 				offer, err := d.offerBase.GetOffer(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 
@@ -135,7 +136,7 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 				}
 
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ":err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
 					return
 				}
 			}
@@ -155,19 +156,19 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 		active := c.Query("onlyactive")
 		var deals []*Deal
 		idc := c.Param( "consumerid")
 		idp := c.Param("producerid")
-		if (curruser.Permission == domadoma.Admin || curruser.Permission == domadoma.Manager)&& len(idc)==0 && len(idp) == 0 {
+		if (curruser.Permission == User.Admin || curruser.Permission == User.Manager)&& len(idc)==0 && len(idp) == 0 {
 			if active == "true"{
 				deals, err = d.dealBase.ListActiveDeals()
 			} else {
@@ -175,14 +176,14 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 			}
 
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 				return
 			}
 		} else{
 			if len(idc) != 0 {
 				intid, err := strconv.Atoi(idc)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 
@@ -193,14 +194,14 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 				}
 
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 					return
 				}
 			} else {
 				if len(idp) != 0 {
 					intid, err := strconv.Atoi(idp)
 					if err != nil {
-						c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+						c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 						return
 					}
 
@@ -211,11 +212,11 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 					}
 
 					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"Error: ": err.Error()})
+						c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
 						return
 					}
 				} else {
-					c.JSON(http.StatusForbidden,gin.H{"Error: ": "Not allowed"})
+					c.JSON(http.StatusForbidden,gin.H{"Error ": "Not allowed"})
 					return
 				}
 			}
@@ -229,12 +230,12 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -256,7 +257,7 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission!= domadoma.Admin && curruser.Permission!= domadoma.Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
+		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != dealtogetid.ProducerId && curruser.UserId != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
@@ -281,12 +282,12 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager && curruser.Permission != domadoma.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -308,7 +309,7 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission!= domadoma.Admin && curruser.Permission!= domadoma.Manager && curruser.UserId != deal.ProducerId {
+		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != deal.ProducerId {
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
@@ -329,12 +330,12 @@ func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error :":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
 			return
 		}
 
-		if curruser.Permission != domadoma.Admin && curruser.Permission != domadoma.Manager {
-			c.JSON(http.StatusForbidden, gin.H{"Error: ": "Not allowed"})
+		if curruser.Permission != User.Admin && curruser.Permission != User.Manager {
+			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
@@ -352,7 +353,7 @@ func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 
 		err = d.dealBase.DeleteDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error: ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
