@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type RequestEndpoints interface{
@@ -97,7 +98,7 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 		}
 
 		request.ConsumerId = userid
-
+		request.Created = time.Now()
 		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})

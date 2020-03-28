@@ -23,6 +23,6 @@ type Request struct {
 	Price int `json:"price" binding:"required"`
 	Quantity int `json:"quantity" binding:"required"`
 	Location []float64 `json:"location" binding:"required"`
-	Created time.Time `json:"created" binding:"required"`
+	Created time.Time `json:"created"`
 }
 
