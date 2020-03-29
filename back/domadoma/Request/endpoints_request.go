@@ -1,8 +1,7 @@
 package Request
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -22,23 +21,24 @@ type RequestEndpoints interface{
 
 }
 
-func NewRequestEndpoints(requestBase RequestBase) RequestEndpoints {
-	return &RequestEndpointsFactory{requestBase: requestBase}
+func NewRequestEndpoints(requestBase RequestBase, authorizationBase Authorization.AuthorizationBase) RequestEndpoints {
+	return &EndpointsFactory{requestBase: requestBase, authorizationBase:authorizationBase}
 }
 
-type RequestEndpointsFactory struct{
+type EndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
 	requestBase RequestBase
 }
 
-func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
+func (f EndpointsFactory) GetRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -51,13 +51,13 @@ func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		request, err := f.requestBase.GetRequest(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 			return
 		}
 
@@ -65,11 +65,11 @@ func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 	}
 }
 
-func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
+func (f EndpointsFactory) CreateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
@@ -81,11 +81,11 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != userid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -93,7 +93,7 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 		request := Request{}
 		err = c.ShouldBindJSON(&request)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data format is wrong"})
 			return
 		}
 
@@ -101,7 +101,7 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 		request.Created = time.Now()
 		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't create request"})
 			return
 		}
 
@@ -109,15 +109,15 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 	}
 }
 
-func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
+func (f EndpointsFactory) ListRequests() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -127,29 +127,29 @@ func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
 		if len(id) == 0 {
 			requests, err = f.requestBase.ListRequests()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find requests"})
 				return
 			}
 		} else {
 			intid, err := strconv.Atoi(id)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Provided id is not integer"})
 				return
 			}
 			requests, err = f.requestBase.ListConsumerRequests(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ":"Couldn't find requests"})
 				return
 			}
 		}
 		c.JSON(http.StatusOK,requests)	}
 }
 
-func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
+func (f EndpointsFactory) UpdateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
@@ -161,11 +161,11 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != userid{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -178,24 +178,24 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		requesttocheck, err := f.requestBase.GetRequest(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find request"})
 			return
 		}
 
 		request := &Request{}
 		err = c.ShouldBindJSON(&request)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && requesttocheck.ConsumerId != userid {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && requesttocheck.ConsumerId != userid {
 			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
@@ -226,7 +226,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 
 		result, err := f.requestBase.UpdateRequest(request)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't update request"})
 			return
 		}
 
@@ -234,11 +234,11 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 	}
 }
 
-func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
+func (f EndpointsFactory) DeleteRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
@@ -250,11 +250,11 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != userid {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != userid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -267,24 +267,24 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		requesttocheck, err := f.requestBase.GetRequest(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && userid != requesttocheck.ConsumerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && userid != requesttocheck.ConsumerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		err = f.requestBase.DeleteRequest(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete request"})
 			return
 		}
 

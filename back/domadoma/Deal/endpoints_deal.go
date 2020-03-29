@@ -1,11 +1,10 @@
 package Deal
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -27,26 +26,27 @@ type DealEndpoints interface{
 
 }
 
-func NewDealEndpoints(dealBase DealBase) DealEndpoints {
-	return &DealEndpointsFactory{dealBase: dealBase}
+func NewDealEndpoints(dealBase DealBase, authorizationBase Authorization.AuthorizationBase, offerBase Offer.OfferBase, offerLogBase OfferLog.OfferLogBase, requestBase Request.RequestBase) DealEndpoints {
+	return &EndpointsFactory{dealBase: dealBase, authorizationBase:authorizationBase, offerBase:offerBase, offerLogBase:offerLogBase, requestBase:requestBase}
 }
 
-type DealEndpointsFactory struct{
+type EndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
 	dealBase DealBase
 	offerBase Offer.OfferBase
 	offerLogBase OfferLog.OfferLogBase
 	requestBase Request.RequestBase
 }
 
-func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
+func (f EndpointsFactory) GetDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
 			return
 		}
@@ -59,17 +59,17 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		deal, err := d.dealBase.GetDeal(intid)
+		deal, err := f.dealBase.GetDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find deal"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != deal.ConsumerId && curruser.UserId != deal.ProducerId {
 			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
@@ -78,15 +78,15 @@ func (d DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 	}
 }
 
-func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
+func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -97,7 +97,7 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 		deal := Deal{}
 		err = c.ShouldBindJSON(&deal)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Provided data is in wrong format"})
 			return
 		}
 
@@ -114,24 +114,24 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 		if len(reqid) != 0 {
 			intid, err := strconv.Atoi(reqid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 				return
 			}
 
-			request, err := d.requestBase.GetRequest(intid)
+			request, err := f.requestBase.GetRequest(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 				return
 			}
 
 			id := c.Param("producerid")
 			producerid, err := strconv.Atoi(id)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 				return
 			}
 
-			if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != producerid {
+			if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != producerid {
 				c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 				return
 			}
@@ -141,9 +141,9 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			deal.ConsumerId = request.ConsumerId
 			deal.ProducerId = producerid
 
-			err = d.requestBase.DeleteRequest(intid)
+			err = f.requestBase.DeleteRequest(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't delete request"})
 				return
 			}
 
@@ -151,24 +151,24 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			if len(offid) != 0 {
 				intid, err := strconv.Atoi(offid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 					return
 				}
 
-				offer, err := d.offerBase.GetOffer(intid)
+				offer, err := f.offerBase.GetOffer(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 					return
 				}
 
 				id := c.Param("consumerid")
 				consumerid, err := strconv.Atoi(id)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 					return
 				}
 
-				if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != consumerid {
+				if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != consumerid {
 					c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 					return
 				}
@@ -184,24 +184,34 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 
 				offer.AvailableQuantity -= deal.Quantity
 				if offer.AvailableQuantity != 0 {
-					offer, err = d.offerBase.UpdateOffer(offer)
+					offer, err = f.offerBase.UpdateOffer(offer)
+
+					if err != nil {
+						c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't update offer"})
+						return
+					}
 				} else {
 					offerlog := OfferLog.OfferLog(*offer)
-					_,_ = d.offerLogBase.CreateOfferLog(&offerlog)
-					err = d.offerBase.DeleteOffer(intid)
+					_,err = f.offerLogBase.CreateOfferLog(&offerlog)
+					if err != nil {
+						c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't create offer log"})
+						return
+					}
+					err = f.offerBase.DeleteOffer(intid)
+
+					if err != nil {
+						c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't delete offer"})
+						return
+					}
 				}
 
-				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
-					return
-				}
 			}
 		}
 		deal.Created = time.Now()
 		deal.Complete = false
-		result, err := d.dealBase.CreateDeal(&deal)
+		result, err := f.dealBase.CreateDeal(&deal)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't create deal"})
 			return
 		}
 
@@ -209,15 +219,15 @@ func (d DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 	}
 }
 
-func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
+func (f EndpointsFactory) ListDeals() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -225,51 +235,51 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 		var deals []*Deal
 		idc := c.Param( "consumerid")
 		idp := c.Param("producerid")
-		if (curruser.Permission == User.Admin || curruser.Permission == User.Manager)&& len(idc)==0 && len(idp) == 0 {
+		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&& len(idc)==0 && len(idp) == 0 {
 			if active == "true"{
-				deals, err = d.dealBase.ListActiveDeals()
+				deals, err = f.dealBase.ListActiveDeals()
 			} else {
-				deals, err = d.dealBase.ListDeals()
+				deals, err = f.dealBase.ListDeals()
 			}
 
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find deals"})
 				return
 			}
 		} else{
 			if len(idc) != 0 {
 				intid, err := strconv.Atoi(idc)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 					return
 				}
 
 				if active == "true" {
-					deals, err = d.dealBase.ListActiveConsumerDeals(intid)
+					deals, err = f.dealBase.ListActiveConsumerDeals(intid)
 				} else {
-					deals, err = d.dealBase.ListConsumerDeals(intid)
+					deals, err = f.dealBase.ListConsumerDeals(intid)
 				}
 
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find deals"})
 					return
 				}
 			} else {
 				if len(idp) != 0 {
 					intid, err := strconv.Atoi(idp)
 					if err != nil {
-						c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+						c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 						return
 					}
 
 					if active == "true" {
-						deals,err = d.dealBase.ListActiveProducerDeals(intid)
+						deals,err = f.dealBase.ListActiveProducerDeals(intid)
 					} else {
-						deals, err = d.dealBase.ListProducerDeals(intid)
+						deals, err = f.dealBase.ListProducerDeals(intid)
 					}
 
 					if err != nil {
-						c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+						c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find deals"})
 						return
 					}
 				} else {
@@ -283,11 +293,11 @@ func (d DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 }
 
 
-func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
+func (f EndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 /*
@@ -299,11 +309,11 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}*/
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager /*&& curruser.UserId != userid*/{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager /*&& curruser.UserId != userid*/{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -316,17 +326,17 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err!=nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Provided id is not integer"})
 			return
 		}
 
-		dealtogetid, err := d.dealBase.GetDeal(intid)
+		dealtogetid, err := f.dealBase.GetDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
 		}
 
-		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager /*&& userid != dealtogetid.ProducerId && userid != dealtogetid.ConsumerId*/{
+		if curruser.Permission!= Authorization.Admin && curruser.Permission!= Authorization.Manager /*&& userid != dealtogetid.ProducerId && userid != dealtogetid.ConsumerId*/{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
@@ -334,7 +344,7 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 		deal := &Deal{}
 		err = c.ShouldBindJSON(&deal)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Provided data is in wrong format"})
 			return
 		}
 
@@ -343,9 +353,9 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 		deal.ConsumerId = dealtogetid.ConsumerId
 		deal.Created = dealtogetid.Created
 
-		result, err := d.dealBase.UpdateDeal(deal)
+		result, err := f.dealBase.UpdateDeal(deal)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't update deal"})
 			return
 		}
 
@@ -353,15 +363,15 @@ func (d DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	}
 }
 
-func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
+func (f EndpointsFactory) CompleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -374,26 +384,26 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err!=nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Provided id is not integer"})
 			return
 		}
 
-		deal, err := d.dealBase.GetDeal(intid)
+		deal, err := f.dealBase.GetDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
 		}
 
-		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && curruser.UserId != deal.ProducerId {
+		if curruser.Permission!= Authorization.Admin && curruser.Permission!= Authorization.Manager && curruser.UserId != deal.ProducerId {
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		deal.Complete = true
 		deal.Finished = time.Now()
-		result, err := d.dealBase.UpdateDeal(deal)
+		result, err := f.dealBase.UpdateDeal(deal)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't update deal"})
 			return
 		}
 
@@ -401,15 +411,15 @@ func (d DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 	}
 }
 
-func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
+func (f EndpointsFactory) DeleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -422,13 +432,13 @@ func (d DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Provided id is not integer"})
 			return
 		}
 
-		err = d.dealBase.DeleteDeal(intid)
+		err = f.dealBase.DeleteDeal(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete deal "})
 			return
 		}
 

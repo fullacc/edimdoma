@@ -1,8 +1,7 @@
 package Offer
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -21,22 +20,23 @@ type OfferEndpoints interface{
 
 }
 
-func NewOfferEndpoints(offerBase OfferBase) OfferEndpoints {
-	return &OfferEndpointsFactory{offerBase: offerBase}
+func NewOfferEndpoints(offerBase OfferBase, authorizationBase Authorization.AuthorizationBase) OfferEndpoints {
+	return &EndpointsFactory{offerBase: offerBase, authorizationBase:authorizationBase}
 }
 
-type OfferEndpointsFactory struct{
+type EndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
 	offerBase OfferBase
 }
-func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
+func (f EndpointsFactory) GetOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -49,13 +49,13 @@ func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		offer, err := f.offerBase.GetOffer(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 			return
 		}
 
@@ -63,15 +63,15 @@ func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
 	}
 }
 
-func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
+func (f EndpointsFactory) CreateOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -79,33 +79,33 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 		offer := Offer{}
 		err = c.ShouldBindJSON(&offer)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data is in wrong format"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && offer.ProducerId != curruser.UserId {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && offer.ProducerId != curruser.UserId {
 			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		result, err := f.offerBase.CreateOffer(&offer)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't create offer"})
 			return
 		}
 		c.JSON(http.StatusCreated,result)
 	}
 }
 
-func (f OfferEndpointsFactory) ListOffers() func(c *gin.Context) {
+func (f EndpointsFactory) ListOffers() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -115,18 +115,18 @@ func (f OfferEndpointsFactory) ListOffers() func(c *gin.Context) {
 		if len(id) == 0 {
 			offers, err = f.offerBase.ListOffers()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find offers"})
 				return
 			}
 		} else {
 			intid, err := strconv.Atoi(id)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Provided id is not integer"})
 				return
 			}
 			offers, err = f.offerBase.ListProducerOffers(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find offers"})
 				return
 			}
 		}
@@ -135,15 +135,15 @@ func (f OfferEndpointsFactory) ListOffers() func(c *gin.Context) {
 }
 
 
-func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
+func (f EndpointsFactory) UpdateOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -156,24 +156,24 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		offertocheck, err := f.offerBase.GetOffer(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find offer"})
 			return
 		}
 
 		offer := &Offer{}
 		err = c.ShouldBindJSON(&offer)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && offertocheck.ProducerId != curruser.UserId && offer.ProducerId != offertocheck.ProducerId {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && offertocheck.ProducerId != curruser.UserId && offer.ProducerId != offertocheck.ProducerId {
 			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 			return
 		}
@@ -208,7 +208,7 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 
 		result, err := f.offerBase.UpdateOffer(offer)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't update offer"})
 			return
 		}
 
@@ -216,15 +216,15 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 	}
 }
 
-func (f OfferEndpointsFactory) DeleteOffer() func(c *gin.Context) {
+func (f EndpointsFactory) DeleteOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -237,24 +237,24 @@ func (f OfferEndpointsFactory) DeleteOffer() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		offertocheck, err := f.offerBase.GetOffer(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != offertocheck.ProducerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != offertocheck.ProducerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		err = f.offerBase.DeleteOffer(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete offer"})
 			return
 		}
 

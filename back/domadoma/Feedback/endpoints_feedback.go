@@ -2,7 +2,7 @@ package Feedback
 
 import (
 	"../Deal"
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -23,25 +23,26 @@ type FeedbackEndpoints interface{
 
 }
 
-func NewFeedbackEndpoints(feedbackBase FeedbackBase) FeedbackEndpoints {
-	return &FeedbackEndpointsFactory{feedbackBase: feedbackBase}
+func NewFeedbackEndpoints(feedbackBase FeedbackBase, authorizationBase Authorization.AuthorizationBase, dealBase Deal.DealBase, userBase User.UserBase) FeedbackEndpoints {
+	return &EndpointsFactory{feedbackBase: feedbackBase, authorizationBase:authorizationBase, dealBase:dealBase, userBase:userBase}
 }
 
-type FeedbackEndpointsFactory struct{
+type EndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
 	feedbackBase FeedbackBase
 	dealBase     Deal.DealBase
 	userBase     User.UserBase
 }
 
-func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
+func (f EndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -54,13 +55,13 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		feedback, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return
 		}
 
@@ -68,11 +69,11 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	}
 }
 
-func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
+func (f EndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
@@ -84,11 +85,11 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 
 		consumerid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != consumerid {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != consumerid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -96,7 +97,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		feedback := Feedback{}
 		err = c.ShouldBindJSON(&feedback)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data is in wrong format"})
 			return
 		}
 
@@ -108,16 +109,16 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 
 		dealid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 		}
 
 		dealtogetid, err := f.dealBase.GetDeal(dealid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
 		}
 
-		if curruser.Permission!= User.Admin && curruser.Permission!= User.Manager && consumerid != dealtogetid.ConsumerId{
+		if curruser.Permission!= Authorization.Admin && curruser.Permission!= Authorization.Manager && consumerid != dealtogetid.ConsumerId{
 			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
@@ -128,7 +129,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		feedback.DealId = dealtogetid.Id
 		result, err := f.feedbackBase.CreateFeedback(&feedback)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't create feedback"})
 			return
 		}
 
@@ -144,25 +145,25 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	}
 }
 
-func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
+func (f EndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		var feedbacks []*Feedback
 		idp := c.Param("producerid")
-		if (curruser.Permission == User.Admin || curruser.Permission == User.Manager)&&len(idp) == 0 {
+		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			feedbacks, err = f.feedbackBase.ListFeedbacks()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedbacks"})
 				return
 			}
 
@@ -170,13 +171,13 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 			if len(idp) != 0 {
 				intid, err := strconv.Atoi(idp)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 					return
 				}
 
 				feedbacks, err = f.feedbackBase.ListProducerFeedbacks(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedbacks"})
 					return
 				}
 
@@ -189,15 +190,15 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 	}
 }
 
-func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
+func (f EndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -210,24 +211,24 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return
 		}
 
 		feedback := &Feedback{}
 		err = c.ShouldBindJSON(feedback)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -256,22 +257,22 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		feedback.Id = intid
 		result, err := f.feedbackBase.UpdateFeedback(feedback)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't update feedback"})
 			return
 		}
 		c.JSON(http.StatusOK,result)
 	}
 }
 
-func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
+func (f EndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -284,17 +285,17 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -307,7 +308,7 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 
 		err = f.feedbackBase.DeleteFeedback(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete feedback"})
 			return
 		}
 

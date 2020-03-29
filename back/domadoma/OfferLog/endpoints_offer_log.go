@@ -1,8 +1,7 @@
 package OfferLog
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -18,23 +17,24 @@ type OfferLogEndpoints interface{
 	DeleteOfferLog() func(c *gin.Context)
 }
 
-func NewOfferLogEndpoints(offerLogBase OfferLogBase) OfferLogEndpoints {
-	return &OfferLogEndpointsFactory{offerLogBase: offerLogBase}
+func NewOfferLogEndpoints(offerLogBase OfferLogBase, authorizationBase Authorization.AuthorizationBase) OfferLogEndpoints {
+	return &EndpointsFactory{offerLogBase: offerLogBase, authorizationBase:authorizationBase}
 }
 
-type OfferLogEndpointsFactory struct{
+type EndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
 	offerLogBase OfferLogBase
 }
 
-func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
+func (f EndpointsFactory) GetOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -47,17 +47,17 @@ func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		offer, err := f.offerLogBase.GetOfferLog(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offerlog"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != offer.ProducerId {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != offer.ProducerId {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -86,38 +86,38 @@ func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 	}
 }
 */
-func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
+func (f EndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		var offerLogs []*OfferLog
 		idp := c.Param("producerid")
-		if (curruser.Permission == User.Admin || curruser.Permission == User.Manager)&&len(idp) == 0 {
+		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			offerLogs, err = f.offerLogBase.ListOfferLogs()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find Offer Logs"})
 				return
 			}
 		} else{
 			if len(idp) != 0 {
 				intid, err := strconv.Atoi(idp)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 					return
 				}
 
 				offerLogs, err = f.offerLogBase.ListProducerOfferLogs(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer logs"})
 					return
 				}
 
@@ -130,15 +130,15 @@ func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 	}
 }
 
-func (f OfferLogEndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
+func (f EndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := domadoma.GetToken(c.Request.Header.Get("Token"))
+		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.Permission != User.Regular {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
@@ -151,24 +151,24 @@ func (f OfferLogEndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
 		offerLogtocheck, err := f.offerLogBase.GetOfferLog(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find offer logs"})
 			return
 		}
 
-		if curruser.Permission != User.Admin && curruser.Permission != User.Manager && curruser.UserId != offerLogtocheck.ProducerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != offerLogtocheck.ProducerId{
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
 		err = f.offerLogBase.DeleteOfferLog(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete offer log"})
 			return
 		}
 

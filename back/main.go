@@ -1,9 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"encoding/json"
-	"fmt"
 	"./domadoma"
 	"./domadoma/Deal"
 	"./domadoma/Feedback"
@@ -11,6 +8,11 @@ import (
 	"./domadoma/OfferLog"
 	"./domadoma/Request"
 	"./domadoma/User"
+	"bufio"
+	"encoding/json"
+	"fmt"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -72,8 +74,7 @@ func LaunchServer(configpath string) error{
 	if err := json.Unmarshal(data, &configfile); err != nil {
 		return err
 	}
-	file.Close()
-
+	_ = file.Close()
 
 	postgreDealBase, err := Deal.NewPostgreDealBase(configfile)
 	if err != nil {
@@ -105,17 +106,29 @@ func LaunchServer(configpath string) error{
 		panic(err)
 	}
 
-	postgreDealEndpoints := Deal.NewDealEndpoints(postgreDealBase)
+	redisAuthorizationBase, err := Authorization.NewRedisAuthorizationBase(configfile)
+	if err != nil {
+		panic(err)
+	}
 
-	postgreFeedbackEndpoints := Feedback.NewFeedbackEndpoints(postgreFeedbackBase)
+	smsBase, err := SMS.NewSMSBase(configfile)
+	if err != nil {
+		panic(err)
+	}
 
-	postgreOfferEndpoints := Offer.NewOfferEndpoints(postgreOfferBase)
+	postgreDealEndpoints := Deal.NewDealEndpoints(postgreDealBase,redisAuthorizationBase,postgreOfferBase,postgreOfferLogBase,postgreRequestBase)
 
-	postgreOfferLogEndpoints := OfferLog.NewOfferLogEndpoints(postgreOfferLogBase)
+	postgreFeedbackEndpoints := Feedback.NewFeedbackEndpoints(postgreFeedbackBase,redisAuthorizationBase,postgreDealBase,postgreUserBase)
 
-	postgreRequestEndpoints := Request.NewRequestEndpoints(postgreRequestBase)
+	postgreOfferEndpoints := Offer.NewOfferEndpoints(postgreOfferBase,redisAuthorizationBase)
 
-	postgreUserEndpoints := User.NewUserEndpoints(postgreUserBase)
+	postgreOfferLogEndpoints := OfferLog.NewOfferLogEndpoints(postgreOfferLogBase,redisAuthorizationBase)
+
+	postgreRequestEndpoints := Request.NewRequestEndpoints(postgreRequestBase,redisAuthorizationBase)
+
+	postgreUserEndpoints := User.NewUserEndpoints(postgreUserBase,redisAuthorizationBase)
+
+	redisAuthorizationEndpoints := Authorization.NewAuthorizationEndpoints(redisAuthorizationBase,smsBase,postgreUserBase)
 
 	router := gin.Default()
 
@@ -182,20 +195,21 @@ func LaunchServer(configpath string) error{
 
 		users := api.Group("user")
 		{
-			users.POST("registration",postgreUserEndpoints.CreateUser())
-			users.POST("login",postgreUserEndpoints.LoginUser())
-			users.PATCH("logout",postgreUserEndpoints.LogoutUser())
 			users.GET(":userid",postgreUserEndpoints.GetUser())
 			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
 			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
-			users.PUT(":userid/changepassword",postgreUserEndpoints.ChangePassword())
+			users.POST("registration",redisAuthorizationEndpoints.RegisterUser())
+			users.POST("checkphone",redisAuthorizationEndpoints.CheckPhone())
+			users.POST("login",redisAuthorizationEndpoints.LoginUser())
+			users.PATCH("logout",redisAuthorizationEndpoints.LogoutUser())
+			users.PUT(":userid/changepassword",redisAuthorizationEndpoints.ChangePassword())
 		}
 	}
 
 	fmt.Println("Server started")
 	go func(port string, rtr *gin.Engine) {
 		rtr.Run("0.0.0.0:" + port)
-	}(configfile.Port, router)
+	}(configfile.ApiPort, router)
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)

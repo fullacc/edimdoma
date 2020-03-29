@@ -9,10 +9,10 @@ import (
 func NewPostgreDealBase(configfile *domadoma.ConfigFile) (DealBase, error) {
 
 	db := pg.Connect(&pg.Options{
-		Database: configfile.Name,
-		Addr: configfile.DbHost + ":" + configfile.DbPort,
-		User: "postgres",
-		Password: configfile.Password,
+		Database: configfile.PgDbName,
+		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User: configfile.PgDbUser,
+		Password: configfile.PgDbPassword,
 	})
 
 	err := createSchema(db)

@@ -9,10 +9,10 @@ import (
 func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 
 	db := pg.Connect(&pg.Options{
-		Database: configfile.Name,
-		Addr: configfile.DbHost + ":" + configfile.DbPort,
-		User: "postgres",
-		Password: configfile.Password,
+		Database: configfile.PgDbName,
+		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User: configfile.PgDbUser,
+		Password: configfile.PgDbPassword,
 	})
 
 	err := createSchema(db)
@@ -58,10 +58,6 @@ func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 		} else {
 			if user.Phone != "" {
 				err = p.db.Model(&user).Where("user.phone = ?",user.Phone).Limit(1).Select()
-			} else {
-				if user.Email != "" {
-					err = p.db.Model(&user).Where("user.email = ?",user.Email).Limit(1).Select()
-				}
 			}
 		}
 	}
