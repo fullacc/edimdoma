@@ -141,7 +141,7 @@ func LaunchServer(configpath string) error{
 		api.GET("offer_log",postgreOfferLogEndpoints.ListOfferLogs())
 		api.GET("request",postgreRequestEndpoints.ListRequests())
 		api.GET("user",postgreUserEndpoints.ListUsers())
-
+		api.POST("user",postgreUserEndpoints.CreateUser())
 
 
 		deals := api.Group("deal")
@@ -200,6 +200,7 @@ func LaunchServer(configpath string) error{
 			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
 			users.POST("registration",redisAuthorizationEndpoints.RegisterUser())
 			users.POST("checkphone",redisAuthorizationEndpoints.CheckPhone())
+			users.POST("checkcode",redisAuthorizationEndpoints.CheckCode())
 			users.POST("login",redisAuthorizationEndpoints.LoginUser())
 			users.PATCH("logout",redisAuthorizationEndpoints.LogoutUser())
 			users.PUT(":userid/changepassword",redisAuthorizationEndpoints.ChangePassword())

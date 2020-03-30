@@ -191,15 +191,22 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 				c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
 				return
 			}
+
+			usertocheckname := &User{UserName:user.UserName}
+			usertocheckname, _ = f.userBase.GetUser(usertocheckname)
+			if usertocheckname != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such username exists"})
+				return
+			}
 		}
 		if user.Name == "" {
-			user.Name=usertocheck.Name
+			user.Name = usertocheck.Name
 		}
 		if user.City == "" {
-			user.City=usertocheck.City
+			user.City = usertocheck.City
 		}
 		if user.Phone == "" {
-			user.Phone=usertocheck.Phone
+			user.Phone = usertocheck.Phone
 		} else {
 			matched, err := Authorization.Validator(Authorization.Phn,user.Phone)
 			if err != nil {
@@ -211,9 +218,16 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 				c.JSON(http.StatusBadRequest,gin.H{"Error":"Invalid Phone input"})
 				return
 			}
+
+			usertocheckphone := &User{Phone: user.Phone}
+			usertocheckphone, _ = f.userBase.GetUser(usertocheckphone)
+			if usertocheckphone != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such phone exists"})
+				return
+			}
 		}
 		if user.Surname == "" {
-			user.Surname=usertocheck.Surname
+			user.Surname = usertocheck.Surname
 		}
 
 		_, err = f.userBase.UpdateUser(user)

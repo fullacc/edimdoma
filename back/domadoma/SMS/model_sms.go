@@ -5,8 +5,8 @@ type SMSBase interface{
 }
 
 type SMS struct{
-	Phone string
-	Code string
+	Phone string `json:"phone"`
+	Code string `json:"code"`
 }
 
 const numberBytes = "0123456789"

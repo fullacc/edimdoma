@@ -6,8 +6,8 @@ type ConfigFile struct{
 	PgDbHost     string `json:"pgdbhost"`
 	PgDbPort     string `json:"pgdbport"`
 	PgDbPassword string `json:"pgdbpassword"`
-	PgDbUser     string `json:"user"`
-	PgDbName     string `json:"name"`
+	PgDbUser     string `json:"pgdbuser"`
+	PgDbName     string `json:"pgdbname"`
 	RdHost       string `json:"rdhost"`
 	RdPort       string `json:"rdport"`
 	RdPass       string `json:"rdpass"`

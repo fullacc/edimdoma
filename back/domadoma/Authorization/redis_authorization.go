@@ -44,7 +44,7 @@ func (r redisAuthorizationBase) GetAuthToken(token string) (*AuthToken, error) {
 	return uInfo, nil
 }
 
-func (r redisAuthorizationBase) GetRegisterToken(token string) (*RegistrationToken,error) {
+func (r redisAuthorizationBase) GetRegistrationToken(token string) (*RegistrationToken,error) {
 	if len(token) == 0 {
 		return nil, errors.New("no token provided")
 	}

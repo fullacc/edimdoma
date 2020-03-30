@@ -9,7 +9,7 @@ import (
 type AuthorizationBase interface{
 	GetAuthToken(token string) (*AuthToken, error)
 
-	GetRegisterToken(token string) (*RegistrationToken, error)
+	GetRegistrationToken(token string) (*RegistrationToken, error)
 
 	SetToken(token string, data []byte, expr time.Duration) error
 
@@ -27,6 +27,7 @@ const (
 	Usrnm = iota
 	Phn
 	Eml
+	Cd
 )
 
 type AuthToken struct {
@@ -36,19 +37,21 @@ type AuthToken struct {
 }
 
 type RegistrationToken struct {
-	Token string
-	Phone string
-	Code string
+	Token string `json:"token"`
+	Phone string `json:"phone" binding:"required"`
+	Code string `json:"code" binding:"required"`
 }
 
-type RegisterPhone struct {
-	Phone string
+type RegistrationPhone struct {
+	Phone string `json:"phone"`
+}
+
+type RegistrationCode struct {
+	Code string `json:"code"`
 }
 
 type UserRegister struct {
 	UserName string `json:"user_name" binding:"required"`
-	Code     string `json:"code" binding:"required"`
-	Phone    string `json:"phone" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -65,6 +68,7 @@ type UserChangePassword struct {
 func Validator(vid int, s string) (bool, error) {
 	usernameregex := `^([\.\_a-z0-9]{1,30})$`
 	phoneregex := `^[0-9]{10}$`
+	coderegex := `^[0-9]{6}$`
 	emailregex := `^([a-z0-9_\-\.]+)@([a-z0-9_\-\.]+)\.([a-z]{2,5})$`
 	switch vid {
 	case Usrnm:
@@ -102,6 +106,15 @@ func Validator(vid int, s string) (bool, error) {
 		return true, nil
 	case Eml:
 		matched, err := regexp.Match(emailregex, []byte(s))
+		if err != nil {
+			return false, err
+		}
+		if !matched {
+			return false, nil
+		}
+		return true, nil
+	case Cd:
+		matched, err := regexp.Match(coderegex, []byte(s))
 		if err != nil {
 			return false, err
 		}
