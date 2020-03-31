@@ -1,9 +1,14 @@
 {
-  "port": "8080",
-  "host": "localhost",
+  "apiport": "8080",
+  "apihost": "localhost",
   "dbport": "5432",
   "dbhost": "127.0.0.1",
-  "user": "postgres",
-  "password": "postgres",
-  "name": "testdb"
+  "dbuser": "postgres",
+  "dbpassword": "postgres",
+  "dbname": "edimdoma",
+  "rdhost": "localhost",
+  "rdport": "6379",
+  "rdpass": "xJW9&4Ce<rDR0<,wnem@QhD#y2v!S3gi8f!N72>Nic2?&Gv&4V>/L]LxseGJ",
+  "smslogin": "asbolsyn",
+  "smspass": "3G-\\~Td32f#8mh\\mCp6^YoaHG]bS:xVA"
 }
