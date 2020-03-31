@@ -1,7 +1,7 @@
 package Deal
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"../../domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"../../domadoma"
 	"github.com/go-redis/redis"
 	"time"
 )

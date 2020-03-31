@@ -1,7 +1,7 @@
 package User
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"../Authorization"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"

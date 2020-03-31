@@ -1,10 +1,10 @@
 package Deal
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
-	"github.com/fullacc/edimdoma/back/domadoma/Offer"
-	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
-	"github.com/fullacc/edimdoma/back/domadoma/Request"
+	"../Authorization"
+	"../Offer"
+	"../OfferLog"
+	"../Request"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"

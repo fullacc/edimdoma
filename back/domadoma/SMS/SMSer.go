@@ -1,7 +1,7 @@
 package SMS
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
+	"../../domadoma"
 	"math/rand"
 	"net/http"
 )

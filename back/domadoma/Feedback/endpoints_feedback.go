@@ -2,8 +2,8 @@ package Feedback
 
 import (
 	"../Deal"
-	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
-	"github.com/fullacc/edimdoma/back/domadoma/User"
+	"../Authorization"
+	"../User"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"

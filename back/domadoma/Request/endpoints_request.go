@@ -1,7 +1,7 @@
 package Request
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"../Authorization"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
