@@ -6,7 +6,6 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
