@@ -5,7 +5,7 @@ import "time"
 type OfferLogBase interface{
 	CreateOfferLog(offerLog *OfferLog) (*OfferLog, error)
 
-	GetOfferLog(id int) (*OfferLog, error)
+	GetOfferLog(offerLog *OfferLog) (*OfferLog, error)
 
 	ListOfferLogs() ([]*OfferLog, error)
 

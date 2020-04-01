@@ -1,7 +1,7 @@
 package User
 
 import (
-	"../../domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
@@ -51,7 +51,7 @@ func (p *postgreUserBase) CreateUser(user *User) (*User, error) {
 func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 	err := error(nil)
 	if user.Id != 0 {
-		err = p.db.Select(&user)
+		err = p.db.Select(user)
 	} else {
 		if user.UserName != "" {
 			err = p.db.Model(&user).Where("user.user_name = ?",user.UserName).Limit(1).Select()
@@ -69,7 +69,7 @@ func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 
 func (p *postgreUserBase) ListUsers() ([]*User, error) {
 	var users []*User
-	err := p.db.Select(users)
+	err := p.db.Model(&users).Select()
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,8 @@
-package User
+package Endpoints
 
 import (
-	"../Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
@@ -22,16 +23,16 @@ type UserEndpoints interface{
 
 }
 
-func NewUserEndpoints(userBase UserBase, authorizationBase Authorization.AuthorizationBase) UserEndpoints {
-	return &EndpointsFactory{userBase: userBase, authorizationBase:authorizationBase}
+func NewUserEndpoints(userBase User.UserBase, authorizationBase Authorization.AuthorizationBase) UserEndpoints {
+	return &UserEndpointsFactory{userBase: userBase, authorizationBase:authorizationBase}
 }
 
-type EndpointsFactory struct{
+type UserEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	userBase UserBase
+	userBase          User.UserBase
 }
 
-func (f EndpointsFactory) CreateUser() func(c *gin.Context) {
+func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -44,14 +45,13 @@ func (f EndpointsFactory) CreateUser() func(c *gin.Context) {
 			return
 		}
 
-		user := User{}
+		user := User.User{}
 		err = c.ShouldBindJSON(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is incorrect"})
 			return
 		}
-		user.PasswordHash = "password"
-		pwd := []byte(user.PasswordHash)
+		pwd := []byte("password")
 		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't make your password safe"})
@@ -67,7 +67,7 @@ func (f EndpointsFactory) CreateUser() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) GetUser() func(c *gin.Context) {
+func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -92,19 +92,18 @@ func (f EndpointsFactory) GetUser() func(c *gin.Context) {
 			return
 		}
 
-		user := &User{Id: intid}
-		user, err = f.userBase.GetUser(user)
+		user := User.User{Id: intid}
+		result, err := f.userBase.GetUser(&user)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find user"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
-		user.PasswordHash=".!."
-		c.JSON(http.StatusOK,user)
+		c.JSON(http.StatusOK,result)
 	}
 }
 
-func (f EndpointsFactory) ListUsers() func(c *gin.Context) {
+func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -117,10 +116,10 @@ func (f EndpointsFactory) ListUsers() func(c *gin.Context) {
 			return
 		}
 
-		var users []*User
+		var users []*User.User
 		users, err = f.userBase.ListUsers()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Can't find users"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
 			return
 		}
 
@@ -128,7 +127,7 @@ func (f EndpointsFactory) ListUsers() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
+func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -158,14 +157,14 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 			return
 		}
 
-		usertocheck := &User{Id:intid}
+		usertocheck := &User.User{Id: intid}
 		usertocheck, err = f.userBase.GetUser(usertocheck)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find user"})
 			return
 		}
 
-		user := &User{}
+		user := &User.User{}
 		err = c.ShouldBindJSON(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Wrong data incoming"})
@@ -173,6 +172,7 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 		}
 
 		user.PasswordHash = usertocheck.PasswordHash
+		user.Role = usertocheck.Role
 		user.RatingN = usertocheck.RatingN
 		user.RatingTotal = usertocheck.RatingTotal
 		user.Rating = usertocheck.RatingTotal / usertocheck.RatingN
@@ -192,7 +192,7 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 				return
 			}
 
-			usertocheckname := &User{UserName:user.UserName}
+			usertocheckname := &User.User{UserName: user.UserName}
 			usertocheckname, _ = f.userBase.GetUser(usertocheckname)
 			if usertocheckname != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such username exists"})
@@ -219,7 +219,7 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 				return
 			}
 
-			usertocheckphone := &User{Phone: user.Phone}
+			usertocheckphone := &User.User{Phone: user.Phone}
 			usertocheckphone, _ = f.userBase.GetUser(usertocheckphone)
 			if usertocheckphone != nil {
 				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such phone exists"})
@@ -239,7 +239,7 @@ func (f EndpointsFactory) UpdateUser() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteUser() func(c *gin.Context) {
+func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {

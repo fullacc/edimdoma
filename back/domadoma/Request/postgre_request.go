@@ -1,7 +1,7 @@
 package Request
 
 import (
-	"../../domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
@@ -47,9 +47,8 @@ func (p *postgreRequestBase) CreateRequest(request *Request) (*Request, error) {
 	return request,nil
 }
 
-func (p *postgreRequestBase) GetRequest(id int) (*Request, error) {
-	request := &Request{Id: id}
-	err := p.db.Select(&request)
+func (p *postgreRequestBase) GetRequest(request *Request) (*Request, error) {
+	err := p.db.Select(request)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (p *postgreRequestBase) GetRequest(id int) (*Request, error) {
 
 func (p *postgreRequestBase) ListRequests() ([]*Request, error) {
 	var requests []*Request
-	err := p.db.Select(requests)
+	err := p.db.Model(&requests).Select()
 	if err != nil {
 		return nil, err
 	}

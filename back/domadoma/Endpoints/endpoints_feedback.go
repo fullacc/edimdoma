@@ -1,9 +1,10 @@
-package Feedback
+package Endpoints
 
 import (
-	"../Deal"
-	"../Authorization"
-	"../User"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Deal"
+	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -23,18 +24,18 @@ type FeedbackEndpoints interface{
 
 }
 
-func NewFeedbackEndpoints(feedbackBase FeedbackBase, authorizationBase Authorization.AuthorizationBase, dealBase Deal.DealBase, userBase User.UserBase) FeedbackEndpoints {
-	return &EndpointsFactory{feedbackBase: feedbackBase, authorizationBase:authorizationBase, dealBase:dealBase, userBase:userBase}
+func NewFeedbackEndpoints(feedbackBase Feedback.FeedbackBase, authorizationBase Authorization.AuthorizationBase, dealBase Deal.DealBase, userBase User.UserBase) FeedbackEndpoints {
+	return &FeedbackEndpointsFactory{feedbackBase: feedbackBase, authorizationBase:authorizationBase, dealBase:dealBase, userBase:userBase}
 }
 
-type EndpointsFactory struct{
+type FeedbackEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	feedbackBase FeedbackBase
-	dealBase     Deal.DealBase
-	userBase     User.UserBase
+	feedbackBase      Feedback.FeedbackBase
+	dealBase          Deal.DealBase
+	userBase          User.UserBase
 }
 
-func (f EndpointsFactory) GetFeedback() func(c *gin.Context) {
+func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -59,7 +60,8 @@ func (f EndpointsFactory) GetFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedback, err := f.feedbackBase.GetFeedback(intid)
+		fdb := Feedback.Feedback{Id:intid}
+		feedback, err := f.feedbackBase.GetFeedback(&fdb)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return
@@ -69,7 +71,7 @@ func (f EndpointsFactory) GetFeedback() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CreateFeedback() func(c *gin.Context) {
+func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -94,7 +96,7 @@ func (f EndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedback := Feedback{}
+		feedback := Feedback.Feedback{}
 		err = c.ShouldBindJSON(&feedback)
 		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data is in wrong format"})
@@ -145,7 +147,7 @@ func (f EndpointsFactory) CreateFeedback() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) ListFeedbacks() func(c *gin.Context) {
+func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -158,7 +160,7 @@ func (f EndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 			return
 		}
 
-		var feedbacks []*Feedback
+		var feedbacks []*Feedback.Feedback
 		idp := c.Param("producerid")
 		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			feedbacks, err = f.feedbackBase.ListFeedbacks()
@@ -190,7 +192,7 @@ func (f EndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) UpdateFeedback() func(c *gin.Context) {
+func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -215,13 +217,14 @@ func (f EndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
+		fdb := Feedback.Feedback{Id:intid}
+		feedbacktocheck, err := f.feedbackBase.GetFeedback(&fdb)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return
 		}
 
-		feedback := &Feedback{}
+		feedback := &Feedback.Feedback{}
 		err = c.ShouldBindJSON(feedback)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
@@ -264,7 +267,7 @@ func (f EndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteFeedback() func(c *gin.Context) {
+func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -289,7 +292,8 @@ func (f EndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 			return
 		}
 
-		feedbacktocheck, err := f.feedbackBase.GetFeedback(intid)
+		fdb := Feedback.Feedback{Id:intid}
+		feedbacktocheck, err := f.feedbackBase.GetFeedback(&fdb)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
 			return

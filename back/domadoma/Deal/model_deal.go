@@ -5,7 +5,7 @@ import "time"
 type DealBase interface {
 	CreateDeal(deal *Deal) (*Deal, error)
 
-	GetDeal(id int) (*Deal, error)
+	GetDeal(deal *Deal) (*Deal, error)
 
 	ListDeals() ([]*Deal, error)
 

@@ -1,7 +1,8 @@
-package OfferLog
+package Endpoints
 
 import (
-	"../Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -17,16 +18,16 @@ type OfferLogEndpoints interface{
 	DeleteOfferLog() func(c *gin.Context)
 }
 
-func NewOfferLogEndpoints(offerLogBase OfferLogBase, authorizationBase Authorization.AuthorizationBase) OfferLogEndpoints {
-	return &EndpointsFactory{offerLogBase: offerLogBase, authorizationBase:authorizationBase}
+func NewOfferLogEndpoints(offerLogBase OfferLog.OfferLogBase, authorizationBase Authorization.AuthorizationBase) OfferLogEndpoints {
+	return &OfferLogEndpointsFactory{offerLogBase: offerLogBase, authorizationBase:authorizationBase}
 }
 
-type EndpointsFactory struct{
+type OfferLogEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	offerLogBase OfferLogBase
+	offerLogBase      OfferLog.OfferLogBase
 }
 
-func (f EndpointsFactory) GetOfferLog() func(c *gin.Context) {
+func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -51,7 +52,8 @@ func (f EndpointsFactory) GetOfferLog() func(c *gin.Context) {
 			return
 		}
 
-		offer, err := f.offerLogBase.GetOfferLog(intid)
+		ofr := OfferLog.OfferLog{Id:intid}
+		offer, err := f.offerLogBase.GetOfferLog(&ofr)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offerlog"})
 			return
@@ -86,7 +88,7 @@ func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 	}
 }
 */
-func (f EndpointsFactory) ListOfferLogs() func(c *gin.Context) {
+func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -99,7 +101,7 @@ func (f EndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 			return
 		}
 
-		var offerLogs []*OfferLog
+		var offerLogs []*OfferLog.OfferLog
 		idp := c.Param("producerid")
 		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			offerLogs, err = f.offerLogBase.ListOfferLogs()
@@ -130,7 +132,7 @@ func (f EndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
+func (f OfferLogEndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -155,7 +157,8 @@ func (f EndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 			return
 		}
 
-		offerLogtocheck, err := f.offerLogBase.GetOfferLog(intid)
+		ofr := OfferLog.OfferLog{Id:intid}
+		offerLogtocheck, err := f.offerLogBase.GetOfferLog(&ofr)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find offer logs"})
 			return

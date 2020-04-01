@@ -1,13 +1,14 @@
 package Deal
 
 import (
-	"../../domadoma"
+	"fmt"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
 func NewPostgreDealBase(configfile *domadoma.ConfigFile) (DealBase, error) {
-
+	fmt.Println(configfile)
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
 		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
@@ -47,8 +48,7 @@ func (p *postgreDealBase) CreateDeal(deal *Deal,) (*Deal, error) {
 	return deal,nil
 }
 
-func (p *postgreDealBase) GetDeal(id int) (*Deal, error) {
-	deal := &Deal{Id: id}
+func (p *postgreDealBase) GetDeal(deal *Deal) (*Deal, error) {
 	err := p.db.Select(deal)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (p *postgreDealBase) GetDeal(id int) (*Deal, error) {
 
 func (p *postgreDealBase) ListDeals() ([]*Deal, error) {
 	var deals []*Deal
-	err := p.db.Select(deals)
+	err := p.db.Model(&deals).Select()
 	if err != nil {
 		return nil, err
 	}

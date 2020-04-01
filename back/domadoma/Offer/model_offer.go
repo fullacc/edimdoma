@@ -7,7 +7,7 @@ import (
 type OfferBase interface{
 	CreateOffer(offer *Offer) (*Offer, error)
 
-	GetOffer(id int) (*Offer, error)
+	GetOffer(offer *Offer) (*Offer, error)
 
 	ListOffers() ([]*Offer, error)
 

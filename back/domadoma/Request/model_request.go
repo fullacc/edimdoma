@@ -5,7 +5,7 @@ import "time"
 type RequestBase interface{
 	CreateRequest(request *Request) (*Request, error)
 
-	GetRequest(id int) (*Request, error)
+	GetRequest(request *Request) (*Request, error)
 
 	ListRequests() ([]*Request, error)
 

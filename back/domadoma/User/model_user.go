@@ -15,7 +15,8 @@ type UserBase interface{
 type User struct {
 	Id int `json:"id,omitempty"`
 	UserName string `json:"user_name" binding:"required"`
-	PasswordHash string `json:"-"`
+	Role int `json:"-"`
+	PasswordHash []byte `json:"-"`
 	Name string `json:"name" binding:"required"`
 	Surname string `json:"surname" binding:"required"`
 	RatingTotal float64 `json:"-"`

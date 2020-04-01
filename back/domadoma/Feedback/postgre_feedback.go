@@ -1,7 +1,7 @@
 package Feedback
 
 import (
-	"../../domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
@@ -47,9 +47,8 @@ func (p *postgreFeedbackBase) CreateFeedback(feedback *Feedback) (*Feedback, err
 	return feedback,nil
 }
 
-func (p *postgreFeedbackBase) GetFeedback(id int) (*Feedback, error) {
-	feedback := &Feedback{Id: id}
-	err := p.db.Select(&feedback)
+func (p *postgreFeedbackBase) GetFeedback(feedback *Feedback) (*Feedback, error) {
+	err := p.db.Select(feedback)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (p *postgreFeedbackBase) GetFeedback(id int) (*Feedback, error) {
 
 func (p *postgreFeedbackBase) ListFeedbacks() ([]*Feedback, error) {
 	var feedbacks []*Feedback
-	err := p.db.Select(feedbacks)
+	err := p.db.Model(&feedbacks).Select()
 	if err != nil {
 		return nil, err
 	}

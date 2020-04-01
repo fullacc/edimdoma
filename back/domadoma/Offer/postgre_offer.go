@@ -1,7 +1,7 @@
 package Offer
 
 import (
-	"../../domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
@@ -47,9 +47,8 @@ func (p *postgreOfferBase) CreateOffer(offer *Offer) (*Offer, error) {
 	return offer, nil
 }
 
-func (p *postgreOfferBase) GetOffer(id int) (*Offer, error) {
-	offer := &Offer{Id: id}
-	err := p.db.Select(&offer)
+func (p *postgreOfferBase) GetOffer(offer *Offer) (*Offer, error) {
+	err := p.db.Select(offer)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (p *postgreOfferBase) GetOffer(id int) (*Offer, error) {
 
 func (p *postgreOfferBase) ListOffers() ([]*Offer, error) {
 	var offers []*Offer
-	err := p.db.Select(offers)
+	err := p.db.Model(&offers).Select()
 	if err != nil {
 		return nil, err
 	}

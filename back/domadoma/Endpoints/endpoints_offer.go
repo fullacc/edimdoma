@@ -1,7 +1,8 @@
-package Offer
+package Endpoints
 
 import (
-	"../Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -20,15 +21,15 @@ type OfferEndpoints interface{
 
 }
 
-func NewOfferEndpoints(offerBase OfferBase, authorizationBase Authorization.AuthorizationBase) OfferEndpoints {
-	return &EndpointsFactory{offerBase: offerBase, authorizationBase:authorizationBase}
+func NewOfferEndpoints(offerBase Offer.OfferBase, authorizationBase Authorization.AuthorizationBase) OfferEndpoints {
+	return &OfferEndpointsFactory{offerBase: offerBase, authorizationBase:authorizationBase}
 }
 
-type EndpointsFactory struct{
+type OfferEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	offerBase OfferBase
+	offerBase         Offer.OfferBase
 }
-func (f EndpointsFactory) GetOffer() func(c *gin.Context) {
+func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -52,8 +53,8 @@ func (f EndpointsFactory) GetOffer() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
-
-		offer, err := f.offerBase.GetOffer(intid)
+		ofr := Offer.Offer{Id:intid}
+		offer, err := f.offerBase.GetOffer(&ofr)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 			return
@@ -63,7 +64,7 @@ func (f EndpointsFactory) GetOffer() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CreateOffer() func(c *gin.Context) {
+func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -76,7 +77,7 @@ func (f EndpointsFactory) CreateOffer() func(c *gin.Context) {
 			return
 		}
 
-		offer := Offer{}
+		offer := Offer.Offer{}
 		err = c.ShouldBindJSON(&offer)
 		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data is in wrong format"})
@@ -97,7 +98,7 @@ func (f EndpointsFactory) CreateOffer() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) ListOffers() func(c *gin.Context) {
+func (f OfferEndpointsFactory) ListOffers() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -110,7 +111,7 @@ func (f EndpointsFactory) ListOffers() func(c *gin.Context) {
 			return
 		}
 
-		var offers []*Offer
+		var offers []*Offer.Offer
 		id := c.Param("producerid")
 		if len(id) == 0 {
 			offers, err = f.offerBase.ListOffers()
@@ -135,7 +136,7 @@ func (f EndpointsFactory) ListOffers() func(c *gin.Context) {
 }
 
 
-func (f EndpointsFactory) UpdateOffer() func(c *gin.Context) {
+func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -160,13 +161,14 @@ func (f EndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			return
 		}
 
-		offertocheck, err := f.offerBase.GetOffer(intid)
+		ofr := Offer.Offer{Id:intid}
+		offertocheck, err := f.offerBase.GetOffer(&ofr)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find offer"})
 			return
 		}
 
-		offer := &Offer{}
+		offer := &Offer.Offer{}
 		err = c.ShouldBindJSON(&offer)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
@@ -216,7 +218,7 @@ func (f EndpointsFactory) UpdateOffer() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteOffer() func(c *gin.Context) {
+func (f OfferEndpointsFactory) DeleteOffer() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -241,7 +243,8 @@ func (f EndpointsFactory) DeleteOffer() func(c *gin.Context) {
 			return
 		}
 
-		offertocheck, err := f.offerBase.GetOffer(intid)
+		ofr := Offer.Offer{Id:intid}
+		offertocheck, err := f.offerBase.GetOffer(&ofr)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 			return

@@ -1,18 +1,19 @@
 package main
 
 import (
-	"./domadoma"
-	"./domadoma/Authorization"
-	"./domadoma/Deal"
-	"./domadoma/Feedback"
-	"./domadoma/Offer"
-	"./domadoma/OfferLog"
-	"./domadoma/Request"
-	"./domadoma/SMS"
-	"./domadoma/User"
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/fullacc/edimdoma/back/domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Deal"
+	"github.com/fullacc/edimdoma/back/domadoma/Endpoints"
+	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
+	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
+	"github.com/fullacc/edimdoma/back/domadoma/Request"
+	"github.com/fullacc/edimdoma/back/domadoma/SMS"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli"
 	"io/ioutil"
@@ -65,11 +66,13 @@ func LaunchServer(configpath string) error{
 	if err != nil {
 		return err
 	}
+
 	buffer := bufio.NewReader(file)
 	data, err := ioutil.ReadAll(buffer)
 	if err != nil {
 		return err
 	}
+
 	var configfile *domadoma.ConfigFile
 	if err := json.Unmarshal(data, &configfile); err != nil {
 		return err
@@ -116,19 +119,19 @@ func LaunchServer(configpath string) error{
 		panic(err)
 	}
 
-	postgreDealEndpoints := Deal.NewDealEndpoints(postgreDealBase,redisAuthorizationBase,postgreOfferBase,postgreOfferLogBase,postgreRequestBase)
+	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase,redisAuthorizationBase,postgreOfferBase,postgreOfferLogBase,postgreRequestBase)
 
-	postgreFeedbackEndpoints := Feedback.NewFeedbackEndpoints(postgreFeedbackBase,redisAuthorizationBase,postgreDealBase,postgreUserBase)
+	postgreFeedbackEndpoints := Endpoints.NewFeedbackEndpoints(postgreFeedbackBase,redisAuthorizationBase,postgreDealBase,postgreUserBase)
 
-	postgreOfferEndpoints := Offer.NewOfferEndpoints(postgreOfferBase,redisAuthorizationBase)
+	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase,redisAuthorizationBase)
 
-	postgreOfferLogEndpoints := OfferLog.NewOfferLogEndpoints(postgreOfferLogBase,redisAuthorizationBase)
+	postgreOfferLogEndpoints := Endpoints.NewOfferLogEndpoints(postgreOfferLogBase,redisAuthorizationBase)
 
-	postgreRequestEndpoints := Request.NewRequestEndpoints(postgreRequestBase,redisAuthorizationBase)
+	postgreRequestEndpoints := Endpoints.NewRequestEndpoints(postgreRequestBase,redisAuthorizationBase)
 
-	postgreUserEndpoints := User.NewUserEndpoints(postgreUserBase,redisAuthorizationBase)
+	postgreUserEndpoints := Endpoints.NewUserEndpoints(postgreUserBase,redisAuthorizationBase)
 
-	redisAuthorizationEndpoints := Authorization.NewAuthorizationEndpoints(redisAuthorizationBase,smsBase,postgreUserBase)
+	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase,smsBase,postgreUserBase)
 
 	router := gin.Default()
 
@@ -207,10 +210,11 @@ func LaunchServer(configpath string) error{
 		}
 	}
 
-	fmt.Println("Server started")
+
 	go func(port string, rtr *gin.Engine) {
 		rtr.Run("0.0.0.0:" + port)
 	}(configfile.ApiPort, router)
+	fmt.Println("Server started")
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)

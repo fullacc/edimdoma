@@ -1,7 +1,8 @@
-package Request
+package Endpoints
 
 import (
-	"../Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -21,16 +22,16 @@ type RequestEndpoints interface{
 
 }
 
-func NewRequestEndpoints(requestBase RequestBase, authorizationBase Authorization.AuthorizationBase) RequestEndpoints {
-	return &EndpointsFactory{requestBase: requestBase, authorizationBase:authorizationBase}
+func NewRequestEndpoints(requestBase Request.RequestBase, authorizationBase Authorization.AuthorizationBase) RequestEndpoints {
+	return &RequestEndpointsFactory{requestBase: requestBase, authorizationBase:authorizationBase}
 }
 
-type EndpointsFactory struct{
+type RequestEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	requestBase RequestBase
+	requestBase       Request.RequestBase
 }
 
-func (f EndpointsFactory) GetRequest() func(c *gin.Context) {
+func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -51,11 +52,12 @@ func (f EndpointsFactory) GetRequest() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Provided id is not integer"})
 			return
 		}
 
-		request, err := f.requestBase.GetRequest(intid)
+		rqt := Request.Request{Id:intid}
+		request, err := f.requestBase.GetRequest(&rqt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 			return
@@ -65,7 +67,7 @@ func (f EndpointsFactory) GetRequest() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CreateRequest() func(c *gin.Context) {
+func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -90,7 +92,7 @@ func (f EndpointsFactory) CreateRequest() func(c *gin.Context) {
 			return
 		}
 
-		request := Request{}
+		request := Request.Request{}
 		err = c.ShouldBindJSON(&request)
 		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data format is wrong"})
@@ -109,7 +111,7 @@ func (f EndpointsFactory) CreateRequest() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) ListRequests() func(c *gin.Context) {
+func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -122,7 +124,7 @@ func (f EndpointsFactory) ListRequests() func(c *gin.Context) {
 			return
 		}
 
-		var requests []*Request
+		var requests []*Request.Request
 		id := c.Param("consumerid")
 		if len(id) == 0 {
 			requests, err = f.requestBase.ListRequests()
@@ -145,7 +147,7 @@ func (f EndpointsFactory) ListRequests() func(c *gin.Context) {
 		c.JSON(http.StatusOK,requests)	}
 }
 
-func (f EndpointsFactory) UpdateRequest() func(c *gin.Context) {
+func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -182,13 +184,14 @@ func (f EndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		requesttocheck, err := f.requestBase.GetRequest(intid)
+		rqt := Request.Request{Id:intid}
+		requesttocheck, err := f.requestBase.GetRequest(&rqt)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find request"})
 			return
 		}
 
-		request := &Request{}
+		request := &Request.Request{}
 		err = c.ShouldBindJSON(&request)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
@@ -234,7 +237,7 @@ func (f EndpointsFactory) UpdateRequest() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteRequest() func(c *gin.Context) {
+func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -271,7 +274,8 @@ func (f EndpointsFactory) DeleteRequest() func(c *gin.Context) {
 			return
 		}
 
-		requesttocheck, err := f.requestBase.GetRequest(intid)
+		request := Request.Request{Id:intid}
+		requesttocheck, err := f.requestBase.GetRequest(&request)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 			return

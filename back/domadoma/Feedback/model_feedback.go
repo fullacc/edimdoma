@@ -5,7 +5,7 @@ import "time"
 type FeedbackBase interface{
 	CreateFeedback(feedback *Feedback) (*Feedback, error)
 
-	GetFeedback(id int) (*Feedback, error)
+	GetFeedback(feedback *Feedback) (*Feedback, error)
 
 	ListFeedbacks() ([]*Feedback, error)
 

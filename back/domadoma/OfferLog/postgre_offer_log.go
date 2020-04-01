@@ -1,7 +1,7 @@
 package OfferLog
 
 import (
-	"../../domadoma"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
@@ -47,9 +47,8 @@ func (p *postgreOfferLogBase) CreateOfferLog(offerLog *OfferLog) (*OfferLog, err
 	return offerLog,nil
 }
 
-func (p *postgreOfferLogBase) GetOfferLog(id int) (*OfferLog, error) {
-	offerLog := &OfferLog{Id: id}
-	err := p.db.Select(&offerLog)
+func (p *postgreOfferLogBase) GetOfferLog(offerLog *OfferLog) (*OfferLog, error) {
+	err := p.db.Select(offerLog)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +57,7 @@ func (p *postgreOfferLogBase) GetOfferLog(id int) (*OfferLog, error) {
 
 func (p *postgreOfferLogBase) ListOfferLogs() ([]*OfferLog, error) {
 	var offerLogs []*OfferLog
-	err := p.db.Select(offerLogs)
+	err := p.db.Model(&offerLogs).Select()
 	if err != nil {
 		return nil, err
 	}

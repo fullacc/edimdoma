@@ -1,9 +1,10 @@
-package Authorization
+package Endpoints
 
 import (
 	"encoding/json"
-	"../SMS"
-	"../User"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/SMS"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/bcrypt"
@@ -28,17 +29,17 @@ type AuthorizationEndpoints interface{
 	CheckCode() func(c *gin.Context)
 }
 
-func NewAuthorizationEndpoints(authorizationBase AuthorizationBase, smsBase SMS.SMSBase, userBase User.UserBase) AuthorizationEndpoints {
-	return &EndpointsFactory{authorizationBase: authorizationBase, smsBase:smsBase, userBase:userBase}
+func NewAuthorizationEndpoints(authorizationBase Authorization.AuthorizationBase, smsBase SMS.SMSBase, userBase User.UserBase) AuthorizationEndpoints {
+	return &AuthorizationEndpointsFactory{authorizationBase: authorizationBase, smsBase:smsBase, userBase:userBase}
 }
 
-type EndpointsFactory struct{
-	authorizationBase AuthorizationBase
-	userBase User.UserBase
-	smsBase SMS.SMSBase
+type AuthorizationEndpointsFactory struct{
+	authorizationBase Authorization.AuthorizationBase
+	userBase          User.UserBase
+	smsBase           SMS.SMSBase
 }
 
-func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
+func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		currtoken, err := f.authorizationBase.GetRegistrationToken(c.Request.Header.Get("Token"))
 		if err != nil || currtoken == nil{
@@ -51,7 +52,7 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		var user UserRegister
+		var user Authorization.UserRegister
 		err = c.ShouldBindJSON(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
@@ -59,7 +60,7 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 		}
 
 		user.UserName = strings.ToLower(user.UserName)
-		matched, err := Validator(Usrnm, user.UserName)
+		matched, err := Authorization.Validator(Authorization.Usrnm, user.UserName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate username"})
 			return
@@ -77,7 +78,7 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		matched, err = Validator(Phn, currtoken.Phone)
+		matched, err = Authorization.Validator(Authorization.Phn, currtoken.Phone)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate phone"})
 			return
@@ -99,12 +100,13 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 		newuser := &User.User{}
 		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldm't make your password safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't make your password safe"})
 			return
 		}
 
 		newuser.PasswordHash = hash
 		newuser.UserName = user.UserName
+		newuser.Role = Authorization.Regular
 		newuser.Phone = currtoken.Phone
 		newuser.RatingN = 0
 		newuser.RatingTotal = 0
@@ -118,7 +120,7 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		input := &AuthToken{Permission: Regular, Token: xid.New().String(), UserId: result.Id}
+		input := &Authorization.AuthToken{Permission: newuser.Role, Token: xid.New().String(), UserId: result.Id}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't"})
@@ -135,9 +137,11 @@ func (f EndpointsFactory) RegisterUser() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) LoginUser() func(c *gin.Context) {
+
+
+func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		var user UserLogin
+		var user Authorization.UserLogin
 		err := c.ShouldBindJSON(&user)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
@@ -146,7 +150,7 @@ func (f EndpointsFactory) LoginUser() func(c *gin.Context) {
 		user.Login = strings.ToLower(user.Login)
 
 		lookupuser := &User.User{}
-		matched, err := Validator(Phn, user.Login)
+		matched, err := Authorization.Validator(Authorization.Phn, user.Login)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate phone"})
 			return
@@ -154,7 +158,7 @@ func (f EndpointsFactory) LoginUser() func(c *gin.Context) {
 		if matched {
 			lookupuser.Phone = user.Login
 		} else {
-			matched, err = Validator(Eml, user.Login)
+			matched, err = Authorization.Validator(Authorization.Eml, user.Login)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate username"})
 				return
@@ -179,14 +183,14 @@ func (f EndpointsFactory) LoginUser() func(c *gin.Context) {
 			return
 		}
 
-		input := &AuthToken{Permission: Regular, Token: xid.New().String(), UserId: lookupuser.Id}
+		input := &Authorization.AuthToken{Permission: lookupuser.Role, Token: xid.New().String(), UserId: lookupuser.Id}
 		data, err := json.Marshal(input)
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
 		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
 	}
 }
 
-func (f EndpointsFactory) LogoutUser() func(c *gin.Context) {
+func (f AuthorizationEndpointsFactory) LogoutUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -204,7 +208,7 @@ func (f EndpointsFactory) LogoutUser() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) ChangePassword() func(c *gin.Context) {
+func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -224,12 +228,12 @@ func (f EndpointsFactory) ChangePassword() func(c *gin.Context) {
 			return
 		}
 
-		if curruser.Permission != Admin && curruser.Permission != Manager && curruser.UserId != intid {
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != intid {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
 			return
 		}
 
-		pass := UserChangePassword{}
+		pass := Authorization.UserChangePassword{}
 		err = c.ShouldBindJSON(&pass)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided data is in wrong format"})
@@ -264,16 +268,16 @@ func (f EndpointsFactory) ChangePassword() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CheckPhone() func(c *gin.Context) {
+func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		number := RegistrationPhone{}
+		number := Authorization.RegistrationPhone{}
 		err := c.ShouldBindJSON(&number)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "wrong data"})
 			return
 		}
 
-		valid, err := Validator(Phn, number.Phone)
+		valid, err := Authorization.Validator(Authorization.Phn, number.Phone)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Internal error"})
 			return
@@ -298,7 +302,7 @@ func (f EndpointsFactory) CheckPhone() func(c *gin.Context) {
 			return
 		}
 
-		input := &RegistrationToken{Token: xid.New().String(),Phone: sentSMS.Phone,Code: sentSMS.Code}
+		input := &Authorization.RegistrationToken{Token: xid.New().String(),Phone: sentSMS.Phone,Code: sentSMS.Code}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})
@@ -315,7 +319,7 @@ func (f EndpointsFactory) CheckPhone() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CheckCode() func(c *gin.Context) {
+func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 	return func (c *gin.Context) {
 		currtoken, err := f.authorizationBase.GetRegistrationToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -323,20 +327,20 @@ func (f EndpointsFactory) CheckCode() func(c *gin.Context) {
 			return
 		}
 
-		codetocheck := &RegistrationCode{}
+		codetocheck := &Authorization.RegistrationCode{}
 		err = c.ShouldBindJSON(&codetocheck)
 		if err != nil {
 			c.JSON(http.StatusBadRequest,gin.H{"Error":"Provided Code is in wrong format"})
 			return
 		}
 
-		matched, err := Validator(Cd, codetocheck.Code)
+		matched, err := Authorization.Validator(Authorization.Cd, codetocheck.Code)
 		if err != nil || !matched || codetocheck.Code != currtoken.Code{
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate Code"})
 			return
 		}
 
-		input := &RegistrationToken{Token: xid.New().String(),Phone:currtoken.Phone,Code:"goodtogo"}
+		input := &Authorization.RegistrationToken{Token: xid.New().String(),Phone:currtoken.Phone,Code:"goodtogo"}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})

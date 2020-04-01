@@ -1,10 +1,11 @@
-package Deal
+package Endpoints
 
 import (
-	"../Authorization"
-	"../Offer"
-	"../OfferLog"
-	"../Request"
+	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Deal"
+	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
+	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
@@ -26,19 +27,19 @@ type DealEndpoints interface{
 
 }
 
-func NewDealEndpoints(dealBase DealBase, authorizationBase Authorization.AuthorizationBase, offerBase Offer.OfferBase, offerLogBase OfferLog.OfferLogBase, requestBase Request.RequestBase) DealEndpoints {
-	return &EndpointsFactory{dealBase: dealBase, authorizationBase:authorizationBase, offerBase:offerBase, offerLogBase:offerLogBase, requestBase:requestBase}
+func NewDealEndpoints(dealBase Deal.DealBase, authorizationBase Authorization.AuthorizationBase, offerBase Offer.OfferBase, offerLogBase OfferLog.OfferLogBase, requestBase Request.RequestBase) DealEndpoints {
+	return &DealEndpointsFactory{dealBase: dealBase, authorizationBase:authorizationBase, offerBase:offerBase, offerLogBase:offerLogBase, requestBase:requestBase}
 }
 
-type EndpointsFactory struct{
+type DealEndpointsFactory struct{
 	authorizationBase Authorization.AuthorizationBase
-	dealBase DealBase
-	offerBase Offer.OfferBase
-	offerLogBase OfferLog.OfferLogBase
-	requestBase Request.RequestBase
+	dealBase          Deal.DealBase
+	offerBase         Offer.OfferBase
+	offerLogBase      OfferLog.OfferLogBase
+	requestBase       Request.RequestBase
 }
 
-func (f EndpointsFactory) GetDeal() func(c *gin.Context) {
+func (f DealEndpointsFactory) GetDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -63,7 +64,8 @@ func (f EndpointsFactory) GetDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal, err := f.dealBase.GetDeal(intid)
+		dl := Deal.Deal{Id:intid}
+		deal, err := f.dealBase.GetDeal(&dl)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find deal"})
 			return
@@ -78,7 +80,7 @@ func (f EndpointsFactory) GetDeal() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
+func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -94,7 +96,7 @@ func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
 		reqid := c.Param("requestid")
 		offid := c.Param("offerid")
 
-		deal := Deal{}
+		deal := Deal.Deal{}
 		err = c.ShouldBindJSON(&deal)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Provided data is in wrong format"})
@@ -118,7 +120,8 @@ func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
 				return
 			}
 
-			request, err := f.requestBase.GetRequest(intid)
+			rq := Request.Request{Id:intid}
+			request, err := f.requestBase.GetRequest(&rq)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find request"})
 				return
@@ -155,7 +158,8 @@ func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
 					return
 				}
 
-				offer, err := f.offerBase.GetOffer(intid)
+				ofr := Offer.Offer{Id:intid}
+				offer, err := f.offerBase.GetOffer(&ofr)
 				if err != nil {
 					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer"})
 					return
@@ -219,7 +223,7 @@ func (f EndpointsFactory) CreateDeal() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) ListDeals() func(c *gin.Context) {
+func (f DealEndpointsFactory) ListDeals() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -232,7 +236,7 @@ func (f EndpointsFactory) ListDeals() func(c *gin.Context) {
 			return
 		}
 		active := c.Query("onlyactive")
-		var deals []*Deal
+		var deals []*Deal.Deal
 		idc := c.Param( "consumerid")
 		idp := c.Param("producerid")
 		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&& len(idc)==0 && len(idp) == 0 {
@@ -293,7 +297,7 @@ func (f EndpointsFactory) ListDeals() func(c *gin.Context) {
 }
 
 
-func (f EndpointsFactory) UpdateDeal() func(c *gin.Context) {
+func (f DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -330,7 +334,8 @@ func (f EndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			return
 		}
 
-		dealtogetid, err := f.dealBase.GetDeal(intid)
+		dl := Deal.Deal{Id:intid}
+		dealtogetid, err := f.dealBase.GetDeal(&dl)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
@@ -341,7 +346,7 @@ func (f EndpointsFactory) UpdateDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal := &Deal{}
+		deal := &Deal.Deal{}
 		err = c.ShouldBindJSON(&deal)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Provided data is in wrong format"})
@@ -363,7 +368,7 @@ func (f EndpointsFactory) UpdateDeal() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) CompleteDeal() func(c *gin.Context) {
+func (f DealEndpointsFactory) CompleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
@@ -388,7 +393,8 @@ func (f EndpointsFactory) CompleteDeal() func(c *gin.Context) {
 			return
 		}
 
-		deal, err := f.dealBase.GetDeal(intid)
+		dl := Deal.Deal{Id:intid}
+		deal, err := f.dealBase.GetDeal(&dl)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
@@ -411,7 +417,7 @@ func (f EndpointsFactory) CompleteDeal() func(c *gin.Context) {
 	}
 }
 
-func (f EndpointsFactory) DeleteDeal() func(c *gin.Context) {
+func (f DealEndpointsFactory) DeleteDeal() func(c *gin.Context) {
 	return func(c *gin.Context){
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
