@@ -210,7 +210,6 @@ func LaunchServer(configpath string) error{
 		}
 	}
 
-
 	go func(port string, rtr *gin.Engine) {
 		rtr.Run("0.0.0.0:" + port)
 	}(configfile.ApiPort, router)
