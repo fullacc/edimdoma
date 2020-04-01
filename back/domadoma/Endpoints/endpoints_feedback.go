@@ -114,7 +114,8 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 		}
 
-		dealtogetid, err := f.dealBase.GetDeal(dealid)
+		dl := Deal.Deal{Id:dealid}
+		dealtogetid, err := f.dealBase.GetDeal(&dl)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
 			return
