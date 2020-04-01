@@ -120,7 +120,13 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		input := &Authorization.AuthToken{Permission: newuser.Role, Token: xid.New().String(), UserId: result.Id}
+		token, err := Authorization.GenerateToken()
+		if err != nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't make you safe"})
+			return
+		}
+
+		input := &Authorization.AuthToken{Permission: newuser.Role, Token: token, UserId: result.Id}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't"})
@@ -183,7 +189,13 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 			return
 		}
 
-		input := &Authorization.AuthToken{Permission: lookupuser.Role, Token: xid.New().String(), UserId: lookupuser.Id}
+		token, err := Authorization.GenerateToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't make you safe"})
+			return
+		}
+
+		input := &Authorization.AuthToken{Permission: lookupuser.Role, Token: token, UserId: lookupuser.Id}
 		data, err := json.Marshal(input)
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
 		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
@@ -302,7 +314,13 @@ func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 			return
 		}
 
-		input := &Authorization.RegistrationToken{Token: xid.New().String(),Phone: sentSMS.Phone,Code: sentSMS.Code}
+		token, err := Authorization.GenerateToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error":"Couldn't make you safe"})
+			return
+		}
+
+		input := &Authorization.RegistrationToken{Token: token,Phone: sentSMS.Phone,Code: sentSMS.Code}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})
@@ -335,12 +353,24 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 		}
 
 		matched, err := Authorization.Validator(Authorization.Cd, codetocheck.Code)
-		if err != nil || !matched || codetocheck.Code != currtoken.Code{
+		if err != nil || !matched {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate Code"})
 			return
 		}
 
-		input := &Authorization.RegistrationToken{Token: xid.New().String(),Phone:currtoken.Phone,Code:"goodtogo"}
+		if codetocheck.Code != currtoken.Code{
+			f.authorizationBase.DeleteToken(currtoken.Token)
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Wrong Code, removing your token"})
+			return
+		}
+
+		token, err := Authorization.GenerateToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H {"Error":"Couldn't make you safe"})
+			return
+		}
+
+		input := &Authorization.RegistrationToken{Token: token, Phone:currtoken.Phone ,Code:"goodtogo"}
 		data, err := json.Marshal(input)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})
