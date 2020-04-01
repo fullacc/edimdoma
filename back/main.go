@@ -15,7 +15,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
-	"github.com/urfave/cli"
+	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
 	"os"
@@ -26,18 +26,19 @@ import (
 var (
 	port=""
 	config="./config.json"
-	flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:        "config",
-			Aliases:     []string{"c"},
-			Usage:       "config /filepath",
-			Destination: &config,
-		},
-	}
 )
 
 func main() {
 	app := &cli.App{
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "config",
+				Aliases:     []string{"c"},
+				Usage:       "config /filepath",
+				Required:    true,
+				Destination: &config,
+			},
+		},
 		Commands: []*cli.Command{
 			{
 				Name:    "launch",
@@ -47,7 +48,6 @@ func main() {
 			},
 		},
 	}
-	app.Flags=flags
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
