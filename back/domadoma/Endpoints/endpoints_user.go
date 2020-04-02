@@ -110,7 +110,7 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 		}
 
 		user.PasswordHash = hash
-		user.Role = Authorization.Regular
+		user.Role = Authorization.Manager
 		user.Rating = 0
 		result, err := f.userBase.CreateUser(&user)
 		if err != nil {
