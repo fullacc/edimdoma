@@ -66,7 +66,7 @@ func (p *postgreOfferBase) ListOffers() ([]*Offer, error) {
 
 func (p *postgreOfferBase) ListProducerOffers(id int) ([]*Offer, error){
 	var offers []*Offer
-	err := p.db.Model(&offers).Where("Producer_Id = ?",id).Select()
+	err := p.db.Model(&offers).Where("producer_id = ?",id).Select()
 	if err != nil {
 		return nil, err
 	}

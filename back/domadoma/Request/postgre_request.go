@@ -66,7 +66,7 @@ func (p *postgreRequestBase) ListRequests() ([]*Request, error) {
 
 func (p *postgreRequestBase) ListConsumerRequests(id int) ([]*Request, error) {
 	var requests []*Request
-	err := p.db.Model(&requests).Where("Consumer_Id = ?",id).Select()
+	err := p.db.Model(&requests).Where("consumer_id = ?",id).Select()
 	if err != nil {
 		return nil, err
 	}

@@ -17,13 +17,13 @@ type OfferLogBase interface{
 }
 
 type OfferLog struct {
-	Id int `json:"id"`
-	ProducerId int `json:"producer_id" binding:"required"`
-	Food string `json:"name" binding:"required"`
-	Price int `json:"price" binding:"required"`
-	InitialQuantity int `json:"initial_quantity" binding:"required"`
-	AvailableQuantity int `json:"available_quantity" binding:"required"`
-	Location []float64 `json:"location" binding:"required"`
-	Created time.Time `json:"created" binding:"required"`
+	Id                int       `json:"id"`
+	ProducerId        int       `json:"producer_id" binding:"required"`
+	Name              string    `json:"name" binding:"required"`
+	Price             int       `json:"price" binding:"required"`
+	InitialQuantity   int       `json:"initial_quantity" binding:"required"`
+	AvailableQuantity int       `json:"available_quantity" binding:"required"`
+	Location          []float64 `json:"location" binding:"required"`
+	Created           time.Time `json:"created" binding:"required"`
 }
 

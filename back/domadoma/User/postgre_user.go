@@ -1,6 +1,7 @@
 package User
 
 import (
+	"fmt"
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
@@ -54,10 +55,11 @@ func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 		err = p.db.Select(user)
 	} else {
 		if user.UserName != "" {
-			err = p.db.Model(&user).Where("user.user_name = ?",user.UserName).Limit(1).Select()
+			err = p.db.Model(user).Where("user_name = ?",user.UserName).Limit(1).Select()
+			fmt.Println(user)
 		} else {
 			if user.Phone != "" {
-				err = p.db.Model(&user).Where("user.phone = ?",user.Phone).Limit(1).Select()
+				err = p.db.Model(user).Where("phone = ?",user.Phone).Limit(1).Select()
 			}
 		}
 	}

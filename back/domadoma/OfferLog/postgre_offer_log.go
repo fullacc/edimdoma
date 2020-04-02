@@ -66,7 +66,7 @@ func (p *postgreOfferLogBase) ListOfferLogs() ([]*OfferLog, error) {
 
 func (p *postgreOfferLogBase) ListProducerOfferLogs(id int) ([]*OfferLog, error){
 	var offerLogs []*OfferLog
-	err := p.db.Model(&offerLogs).Where("Producer_Id = ?",id).Select()
+	err := p.db.Model(&offerLogs).Where("producer_id = ?",id).Select()
 	if err != nil {
 		return nil, err
 	}

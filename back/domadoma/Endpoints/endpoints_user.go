@@ -1,9 +1,11 @@
 package Endpoints
 
 import (
+	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
@@ -41,28 +43,81 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager{
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		user := User.User{}
 		err = c.ShouldBindJSON(&user)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is incorrect"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided data is incorrect"})
 			return
 		}
+
+
+		user.UserName = strings.ToLower(user.UserName)
+		matched, err := Authorization.Validator(Authorization.Usrnm, user.UserName)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Validate username"})
+			return
+		}
+
+		if !matched {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Invalid username input"})
+			return
+		}
+
+		usertocheck := &User.User{UserName: user.UserName}
+		usertocheck, err = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Such username exists"})
+			return
+		}
+
+		if err != nil && !errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			return
+		}
+
+		matched, err = Authorization.Validator(Authorization.Phn, user.Phone)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Validate phone"})
+			return
+		}
+
+		if !matched {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Invalid phone input"})
+			return
+		}
+
+		usertocheck = &User.User{Phone: user.Phone}
+		usertocheck, err = f.userBase.GetUser(usertocheck)
+		if usertocheck != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Such phone exists"})
+			return
+		}
+
+		if err != nil && !errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			return
+		}
+
 		pwd := []byte("password")
 		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't make your password safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make your password safe"})
 			return
 		}
+
 		user.PasswordHash = hash
+		user.Role = Authorization.Regular
+		user.Rating = 0
 		result, err := f.userBase.CreateUser(&user)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't create user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Create user"})
 			return
 		}
+
 		c.JSON(http.StatusCreated,gin.H{"Created":result})
 	}
 }
@@ -76,30 +131,35 @@ func (f UserEndpointsFactory) GetUser() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		id := c.Param( "userid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		user := User.User{Id: intid}
-		result, err := f.userBase.GetUser(&user)
+		user := &User.User{Id: intid}
+		user, err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 			return
 		}
 
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK,user)
 	}
 }
 
@@ -119,11 +179,11 @@ func (f UserEndpointsFactory) ListUsers() func(c *gin.Context) {
 		var users []*User.User
 		users, err = f.userBase.ListUsers()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Db Error"})
 			return
 		}
 
-		c.JSON(http.StatusCreated,users)
+		c.JSON(http.StatusOK,users)
 	}
 }
 
@@ -136,38 +196,43 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		id := c.Param("userid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != intid{
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		usertocheck := &User.User{Id: intid}
 		usertocheck, err = f.userBase.GetUser(usertocheck)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find user"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 			return
 		}
 
 		user := &User.User{}
 		err = c.ShouldBindJSON(&user)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Wrong data incoming"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Wrong data incoming"})
 			return
 		}
 
@@ -183,7 +248,7 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			user.UserName = strings.ToLower(user.UserName)
 			matched, err := Authorization.Validator(Authorization.Usrnm,user.UserName)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Validate"})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Validate username"})
 				return
 			}
 
@@ -193,11 +258,17 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			}
 
 			usertocheckname := &User.User{UserName: user.UserName}
-			usertocheckname, _ = f.userBase.GetUser(usertocheckname)
+			usertocheckname, err = f.userBase.GetUser(usertocheckname)
 			if usertocheckname != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such username exists"})
+				c.JSON(http.StatusBadRequest, gin.H{"Error": "Such username exists"})
 				return
 			}
+
+			if err != nil && !errors.Is(err,pg.ErrNoRows){
+				c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+				return
+			}
+
 		}
 		if user.Name == "" {
 			user.Name = usertocheck.Name
@@ -210,7 +281,7 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		} else {
 			matched, err := Authorization.Validator(Authorization.Phn,user.Phone)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Validate"})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Validate phone"})
 				return
 			}
 
@@ -220,9 +291,14 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			}
 
 			usertocheckphone := &User.User{Phone: user.Phone}
-			usertocheckphone, _ = f.userBase.GetUser(usertocheckphone)
+			usertocheckphone, err = f.userBase.GetUser(usertocheckphone)
 			if usertocheckphone != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such phone exists"})
+				c.JSON(http.StatusBadRequest, gin.H{"Error": "Such phone exists"})
+				return
+			}
+
+			if err != nil && !errors.Is(err,pg.ErrNoRows){
+				c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 				return
 			}
 		}
@@ -232,7 +308,7 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 
 		_, err = f.userBase.UpdateUser(user)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't update user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Update user"})
 			return
 		}
 		c.JSON(http.StatusOK,gin.H{"udpated user":intid})
@@ -243,35 +319,35 @@ func (f UserEndpointsFactory) DeleteUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager {
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		id := c.Param("userid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != intid{
-			c.JSON(http.StatusForbidden,gin.H{"Error ":"Not allowed"})
+			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
 			return
 		}
 
 		err = f.userBase.DeleteUser(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't Delete user"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Delete user"})
 			return
 		}
 

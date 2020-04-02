@@ -2,10 +2,12 @@ package Endpoints
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strconv"
@@ -71,9 +73,14 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		}
 
 		usertocheck := &User.User{UserName: user.UserName}
-		usertocheck, _ = f.userBase.GetUser(usertocheck)
+		usertocheck, err = f.userBase.GetUser(usertocheck)
 		if usertocheck != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such username exists"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Such username exists"})
+			return
+		}
+
+		if err != nil && !errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
 			return
 		}
 
@@ -89,9 +96,14 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		}
 
 		usertocheck = &User.User{Phone: currtoken.Phone}
-		usertocheck, _ = f.userBase.GetUser(usertocheck)
+		usertocheck, err = f.userBase.GetUser(usertocheck)
 		if usertocheck != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Such phone exists"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Such phone exists"})
+			return
+		}
+
+		if err != nil && !errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
 			return
 		}
 
@@ -99,13 +111,13 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		newuser := &User.User{}
 		hash, err := bcrypt.GenerateFromPassword(pwd, bcrypt.MinCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't make your password safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make your password safe"})
 			return
 		}
 
 		newuser.PasswordHash = hash
 		newuser.UserName = user.UserName
-		newuser.Role = Authorization.Regular
+		newuser.Role = Authorization.Admin
 		newuser.Phone = currtoken.Phone
 		newuser.RatingN = 0
 		newuser.RatingTotal = 0
@@ -115,7 +127,7 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		newuser.City = "Almaty"
 		result, err := f.userBase.CreateUser(newuser)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't create user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't create user"})
 			return
 		}
 
@@ -132,7 +144,7 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
+		err = f.authorizationBase.SetToken(input.Token, data, 4*time.Hour)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't save token"})
 			return
@@ -141,8 +153,6 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		c.JSON(http.StatusCreated, gin.H{"User": result, "Token": input.Token})
 	}
 }
-
-
 
 func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -163,7 +173,7 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 		if matched {
 			lookupuser.Phone = user.Login
 		} else {
-			matched, err = Authorization.Validator(Authorization.Eml, user.Login)
+			matched, err = Authorization.Validator(Authorization.Usrnm, user.Login)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate username"})
 				return
@@ -177,12 +187,16 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 		}
 
 		lookupuser, err = f.userBase.GetUser(lookupuser)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such user in system":user.Login})
+			return
+		}
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find user"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Debug": err.Error()})
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(lookupuser.PasswordHash), []byte(user.Password))
+		err = bcrypt.CompareHashAndPassword(lookupuser.PasswordHash, []byte(user.Password))
 		if err != nil {
 			c.JSON(http.StatusForbidden, gin.H{"Error ": "Wrong password"})
 			return
@@ -197,6 +211,10 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 		input := &Authorization.AuthToken{Permission: lookupuser.Role, Token: token, UserId: lookupuser.Id}
 		data, err := json.Marshal(input)
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't make you safe"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
 	}
 }
@@ -235,12 +253,12 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != intid {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -251,23 +269,28 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 			return
 		}
 
-		usertocheck := User.User{Id: intid}
-		user, err := f.userBase.GetUser(&usertocheck)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't find user"})
+		user := &User.User{Id: intid}
+		user, err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such user in system":intid})
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(pass.OldPassword))
 		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Wrong password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
+			return
+		}
+
+		err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(pass.OldPassword))
+		if err != nil {
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Wrong password"})
 			return
 		}
 
 		newpwd := []byte(pass.NewPassword)
 		user.PasswordHash, err = bcrypt.GenerateFromPassword(newpwd, bcrypt.MinCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't make your password safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make your password safe"})
 			return
 		}
 
@@ -275,7 +298,7 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't update user"})
 		}
-		c.JSON(http.StatusOK, gin.H{"changed for": intid})
+		c.JSON(http.StatusOK, gin.H{"Changed password for": intid})
 	}
 }
 
@@ -299,10 +322,15 @@ func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 			return
 		}
 
-		user := User.User{Phone: number.Phone}
-		founduser, _ := f.userBase.GetUser(&user)
-		if founduser != nil {
+		user := &User.User{Phone: number.Phone}
+		user, err = f.userBase.GetUser(user)
+		if user != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "Such phone exists"})
+			return
+		}
+
+		if err != nil && !errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
 			return
 		}
 

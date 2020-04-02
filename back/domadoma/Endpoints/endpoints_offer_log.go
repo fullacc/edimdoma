@@ -1,9 +1,11 @@
 package Endpoints
 
 import (
+	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
 	"net/http"
 	"strconv"
 )
@@ -36,31 +38,36 @@ func (f OfferLogEndpointsFactory) GetOfferLog() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		id := c.Param( "offerlogid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		ofr := OfferLog.OfferLog{Id:intid}
-		offer, err := f.offerLogBase.GetOfferLog(&ofr)
+		offer := &OfferLog.OfferLog{Id:intid}
+		offer, err = f.offerLogBase.GetOfferLog(offer)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offerlog"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Db Error"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != offer.ProducerId {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -75,13 +82,13 @@ func (f OfferLogEndpointsFactory) CreateOfferLog() func(c *gin.Context) {
 		err := c.ShouldBindJSON(&offerLog)
 		if err != nil {
 			if err != nil {
-				c.JSON(http.StatusBadRequest,gin.H{"Error ": err.Error()})
+				c.JSON(http.StatusBadRequest,gin.H{"Error": err.Error()})
 				return
 			}
 		}
 		result, err := f.offerLogBase.CreateOfferLog(&offerLog)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": err.Error()})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusCreated,result)
@@ -97,7 +104,7 @@ func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -106,25 +113,25 @@ func (f OfferLogEndpointsFactory) ListOfferLogs() func(c *gin.Context) {
 		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			offerLogs, err = f.offerLogBase.ListOfferLogs()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find Offer Logs"})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't find Offer Logs"})
 				return
 			}
 		} else{
 			if len(idp) != 0 {
 				intid, err := strconv.Atoi(idp)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 					return
 				}
 
 				offerLogs, err = f.offerLogBase.ListProducerOfferLogs(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find offer logs"})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't find offer logs"})
 					return
 				}
 
 			} else {
-				c.JSON(http.StatusForbidden,gin.H{"Error ": "Not allowed"})
+				c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 				return
 			}
 		}
@@ -141,37 +148,42 @@ func (f OfferLogEndpointsFactory) DeleteOfferLog() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
-		id := c.Param("offerLogid")
+		id := c.Param("offerlogid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		ofr := OfferLog.OfferLog{Id:intid}
-		offerLogtocheck, err := f.offerLogBase.GetOfferLog(&ofr)
+		offerLogtocheck := &OfferLog.OfferLog{Id:intid}
+		offerLogtocheck, err = f.offerLogBase.GetOfferLog(offerLogtocheck)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find offer logs"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != offerLogtocheck.ProducerId{
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		err = f.offerLogBase.DeleteOfferLog(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete offer log"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't delete offer log"})
 			return
 		}
 

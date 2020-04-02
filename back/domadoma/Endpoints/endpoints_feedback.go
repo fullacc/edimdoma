@@ -1,11 +1,13 @@
 package Endpoints
 
 import (
+	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Deal"
 	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
 	"net/http"
 	"strconv"
 	"time"
@@ -44,26 +46,31 @@ func (f FeedbackEndpointsFactory) GetFeedback() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		id := c.Param( "feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		fdb := Feedback.Feedback{Id:intid}
-		feedback, err := f.feedbackBase.GetFeedback(&fdb)
+		feedback := &Feedback.Feedback{Id:intid}
+		feedback, err = f.feedbackBase.GetFeedback(feedback)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Db Error"})
 			return
 		}
 
@@ -81,31 +88,31 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 
 		id := c.Param( "consumerid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"No id provided"})
 			return
 		}
 
 		consumerid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != consumerid {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		feedback := Feedback.Feedback{}
 		err = c.ShouldBindJSON(&feedback)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "Provided data is in wrong format"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "Provided data is in wrong format"})
 			return
 		}
 
 		id = c.Param( "dealid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error":"No id provided"})
 			return
 		}
 
@@ -114,10 +121,15 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 		}
 
-		dl := Deal.Deal{Id:dealid}
-		dealtogetid, err := f.dealBase.GetDeal(&dl)
+		dealtogetid := &Deal.Deal{Id:dealid}
+		dealtogetid, err = f.dealBase.GetDeal(dealtogetid)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":dealid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ":"Couldn't find deal"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 			return
 		}
 
@@ -132,17 +144,30 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		feedback.DealId = dealtogetid.Id
 		result, err := f.feedbackBase.CreateFeedback(&feedback)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't create feedback"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't create feedback"})
 			return
 		}
 
 		user := &User.User{Id:dealtogetid.ProducerId}
-		user,_ = f.userBase.GetUser(user)
+		user, err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":dealtogetid.ProducerId})
+			return
+		}
+
+		if err != nil{
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			return
+		}
+
 		user.RatingN ++
 		user.RatingTotal += float64(feedback.Value)
 		user.Rating = user.RatingTotal / user.RatingN
-		_,_ = f.userBase.UpdateUser(user)
-
+		_,err = f.userBase.UpdateUser(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't Update user"})
+			return
+		}
 
 		c.JSON(http.StatusCreated,result)
 	}
@@ -157,7 +182,7 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -166,7 +191,7 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 		if (curruser.Permission == Authorization.Admin || curruser.Permission == Authorization.Manager)&&len(idp) == 0 {
 			feedbacks, err = f.feedbackBase.ListFeedbacks()
 			if err != nil {
-				c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedbacks"})
+				c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't find feedbacks"})
 				return
 			}
 
@@ -174,18 +199,18 @@ func (f FeedbackEndpointsFactory) ListFeedbacks() func(c *gin.Context) {
 			if len(idp) != 0 {
 				intid, err := strconv.Atoi(idp)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 					return
 				}
 
 				feedbacks, err = f.feedbackBase.ListProducerFeedbacks(intid)
 				if err != nil {
-					c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedbacks"})
+					c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't find feedbacks"})
 					return
 				}
 
 			} else {
-					c.JSON(http.StatusForbidden,gin.H{"Error ": "Not allowed"})
+					c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
 					return
 				}
 			}
@@ -202,38 +227,43 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		id := c.Param("feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		fdb := Feedback.Feedback{Id:intid}
-		feedbacktocheck, err := f.feedbackBase.GetFeedback(&fdb)
+		feedbacktocheck := &Feedback.Feedback{Id:intid}
+		feedbacktocheck, err = f.feedbackBase.GetFeedback(feedbacktocheck)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
 			return
 		}
 
 		feedback := &Feedback.Feedback{}
 		err = c.ShouldBindJSON(feedback)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided data is in wrong format"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -253,17 +283,32 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		}
 
 		user := &User.User{Id:curruser.UserId}
-		user,_ = f.userBase.GetUser(user)
+		user,err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":curruser.UserId})
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			return
+		}
+
 		user.RatingTotal += float64(feedback.Value) - float64(feedbacktocheck.Value)
 		user.Rating = user.RatingTotal / user.RatingN
-		_,_ = f.userBase.UpdateUser(user)
+		_,err = f.userBase.UpdateUser(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't Update user"})
+			return
+		}
 
 		feedback.Id = intid
 		result, err := f.feedbackBase.UpdateFeedback(feedback)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error ": "Couldn't update feedback"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Update feedback"})
 			return
 		}
+
 		c.JSON(http.StatusOK,result)
 	}
 }
@@ -277,46 +322,71 @@ func (f FeedbackEndpointsFactory) DeleteFeedback() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		id := c.Param("feedbackid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ": "No id provided"})
+			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		fdb := Feedback.Feedback{Id:intid}
-		feedbacktocheck, err := f.feedbackBase.GetFeedback(&fdb)
+		feedbacktocheck := &Feedback.Feedback{Id:intid}
+		feedbacktocheck, err = f.feedbackBase.GetFeedback(feedbacktocheck)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+			return
+		}
+
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't find feedback"})
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Db Error"})
 			return
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != feedbacktocheck.ConsumerId{
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		user := &User.User{Id:curruser.UserId}
-		user, _ = f.userBase.GetUser(user)
-		user.RatingTotal -= float64(feedbacktocheck.Value)
-		user.RatingN --
-		_, _ = f.userBase.UpdateUser(user)
-
-		err = f.feedbackBase.DeleteFeedback(intid)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error ": "Couldn't delete feedback"})
+		user, err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err,pg.ErrNoRows){
+			c.JSON(http.StatusNotFound,gin.H{"No such id in system":curruser.UserId})
 			return
 		}
 
-		c.JSON(http.StatusOK,gin.H{"deletedid":intid})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			return
+		}
+		
+		user.RatingTotal -= float64(feedbacktocheck.Value)
+		user.RatingN --
+		if user.RatingN != 0 {
+			user.Rating = user.RatingTotal / user.RatingN
+		} else {
+			user.Rating = 0
+		}
+		
+		_, err = f.userBase.UpdateUser(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't Update user"})
+			return
+		}
+
+		err = f.feedbackBase.DeleteFeedback(intid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't Delete feedback"})
+			return
+		}
+
+		c.JSON(http.StatusOK,gin.H{"Deletedid":intid})
 	}
 }

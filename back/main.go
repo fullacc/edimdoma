@@ -143,6 +143,7 @@ func LaunchServer(configpath string) error{
 		api.GET("offer",postgreOfferEndpoints.ListOffers())
 		api.GET("offer_log",postgreOfferLogEndpoints.ListOfferLogs())
 		api.GET("request",postgreRequestEndpoints.ListRequests())
+		api.GET("request/:requestid",postgreRequestEndpoints.GetRequest())
 		api.GET("user",postgreUserEndpoints.ListUsers())
 		api.POST("user",postgreUserEndpoints.CreateUser())
 
@@ -161,7 +162,7 @@ func LaunchServer(configpath string) error{
 			{
 				requests.POST("",postgreRequestEndpoints.CreateRequest())
 				requests.GET("",postgreRequestEndpoints.ListRequests())
-				requests.GET(":requestid",postgreRequestEndpoints.GetRequest())
+
 				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
 				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
 			}

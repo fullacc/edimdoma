@@ -66,7 +66,7 @@ func (p *postgreFeedbackBase) ListFeedbacks() ([]*Feedback, error) {
 
 func (p *postgreFeedbackBase) ListProducerFeedbacks(id int) ([]*Feedback, error) {
 	var feedbacks []*Feedback
-	err := p.db.Model(&feedbacks).Where("Producer_Id = ?", id).Select()
+	err := p.db.Model(&feedbacks).Where("producer_id = ?", id).Select()
 	if err != nil {
 		return nil, err
 	}
