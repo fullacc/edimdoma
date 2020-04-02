@@ -131,7 +131,7 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 				return
 			}
 
-			if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != producerid {
+			if (curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != producerid) || producerid == request.ConsumerId{
 				c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 				return
 			}
@@ -169,7 +169,7 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 					return
 				}
 
-				if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != consumerid {
+				if (curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != consumerid) || consumerid == offer.ProducerId{
 					c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 					return
 				}
