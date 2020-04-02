@@ -108,9 +108,12 @@ func (f UserEndpointsFactory) CreateUser() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make your password safe"})
 			return
 		}
-
+		if c.Query("role") == "manager" {
+			user.Role = Authorization.Manager
+		}else {
+			user.Role = Authorization.Regular
+		}
 		user.PasswordHash = hash
-		user.Role = Authorization.Manager
 		user.Rating = 0
 		result, err := f.userBase.CreateUser(&user)
 		if err != nil {

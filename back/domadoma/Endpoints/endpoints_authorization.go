@@ -117,7 +117,7 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 
 		newuser.PasswordHash = hash
 		newuser.UserName = user.UserName
-		newuser.Role = Authorization.Admin
+		newuser.Role = Authorization.Regular
 		newuser.Phone = currtoken.Phone
 		newuser.RatingN = 0
 		newuser.RatingTotal = 0
