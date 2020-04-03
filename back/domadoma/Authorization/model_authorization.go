@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type AuthorizationBase interface{
+type AuthorizationBase interface {
 	GetAuthToken(token string) (*AuthToken, error)
 
 	GetRegistrationToken(token string) (*RegistrationToken, error)
@@ -37,7 +37,7 @@ type AuthToken struct {
 type RegistrationToken struct {
 	Token string `json:"token"`
 	Phone string `json:"phone" binding:"required"`
-	Code string `json:"code" binding:"required"`
+	Code  string `json:"code" binding:"required"`
 }
 
 type RegistrationPhone struct {
@@ -62,4 +62,3 @@ type UserChangePassword struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
 }
-

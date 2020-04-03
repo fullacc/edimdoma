@@ -1,6 +1,6 @@
 package domadoma
 
-type ConfigFile struct{
+type ConfigFile struct {
 	ApiPort      string `json:"apiport"`
 	ApiHost      string `json:"apihost"`
 	PgDbHost     string `json:"pgdbhost"`
@@ -14,4 +14,3 @@ type ConfigFile struct{
 	SMSlogin     string `json:"smslogin"`
 	SMSpass      string `json:"smspass"`
 }
-

@@ -4,18 +4,18 @@ import (
 	"time"
 )
 
-type OfferBase interface{
+type OfferBase interface {
 	CreateOffer(offer *Offer) (*Offer, error)
 
 	GetOffer(offer *Offer) (*Offer, error)
 
 	ListOffers() ([]*Offer, error)
 
-	ListProducerOffers(id int)  ([]*Offer, error)
+	ListProducerOffers(id int) ([]*Offer, error)
 
 	UpdateOffer(offer *Offer) (*Offer, error)
 
-	DeleteOffer(id int)  error
+	DeleteOffer(id int) error
 }
 
 type Offer struct {

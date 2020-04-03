@@ -11,9 +11,9 @@ import (
 
 func NewRedisAuthorizationBase(configfile *domadoma.ConfigFile) (AuthorizationBase, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     configfile.RdHost+":"+configfile.RdPort,
+		Addr:     configfile.RdHost + ":" + configfile.RdPort,
 		Password: configfile.RdPass, // no password set
-		DB:       0,  // use default DB
+		DB:       0,                 // use default DB
 	})
 	pong, err := client.Ping().Result()
 	fmt.Println(pong, err)
@@ -23,7 +23,6 @@ func NewRedisAuthorizationBase(configfile *domadoma.ConfigFile) (AuthorizationBa
 type redisAuthorizationBase struct {
 	rdb *redis.Client
 }
-
 
 func (r redisAuthorizationBase) GetAuthToken(token string) (*AuthToken, error) {
 	if len(token) == 0 {
@@ -44,7 +43,7 @@ func (r redisAuthorizationBase) GetAuthToken(token string) (*AuthToken, error) {
 	return uInfo, nil
 }
 
-func (r redisAuthorizationBase) GetRegistrationToken(token string) (*RegistrationToken,error) {
+func (r redisAuthorizationBase) GetRegistrationToken(token string) (*RegistrationToken, error) {
 	if len(token) == 0 {
 		return nil, errors.New("no token provided")
 	}
@@ -63,8 +62,8 @@ func (r redisAuthorizationBase) GetRegistrationToken(token string) (*Registratio
 	return uInfo, nil
 }
 
-func (r redisAuthorizationBase) SetToken(token string,data []byte, expr time.Duration) error {
-	return r.rdb.Set(token,data,expr).Err()
+func (r redisAuthorizationBase) SetToken(token string, data []byte, expr time.Duration) error {
+	return r.rdb.Set(token, data, expr).Err()
 }
 
 func (r redisAuthorizationBase) DeleteToken(token string) error {

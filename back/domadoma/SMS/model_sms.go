@@ -1,13 +1,12 @@
 package SMS
 
-type SMSBase interface{
+type SMSBase interface {
 	SendSMS(sms SMS) (*SMS, error)
 }
 
-type SMS struct{
+type SMS struct {
 	Phone string `json:"phone"`
-	Code string `json:"code"`
+	Code  string `json:"code"`
 }
 
 const numberBytes = "0123456789"
-

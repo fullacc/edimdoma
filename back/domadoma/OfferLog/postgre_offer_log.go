@@ -10,8 +10,8 @@ func NewPostgreOfferLogBase(configfile *domadoma.ConfigFile) (OfferLogBase, erro
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -42,9 +42,9 @@ func createSchema(db *pg.DB) error {
 func (p *postgreOfferLogBase) CreateOfferLog(offerLog *OfferLog) (*OfferLog, error) {
 	err := p.db.Insert(offerLog)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return offerLog,nil
+	return offerLog, nil
 }
 
 func (p *postgreOfferLogBase) GetOfferLog(offerLog *OfferLog) (*OfferLog, error) {
@@ -61,12 +61,12 @@ func (p *postgreOfferLogBase) ListOfferLogs() ([]*OfferLog, error) {
 	if err != nil {
 		return nil, err
 	}
-	return offerLogs,nil
+	return offerLogs, nil
 }
 
-func (p *postgreOfferLogBase) ListProducerOfferLogs(id int) ([]*OfferLog, error){
+func (p *postgreOfferLogBase) ListProducerOfferLogs(id int) ([]*OfferLog, error) {
 	var offerLogs []*OfferLog
-	err := p.db.Model(&offerLogs).Where("producer_id = ?",id).Select()
+	err := p.db.Model(&offerLogs).Where("producer_id = ?", id).Select()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (p *postgreOfferLogBase) ListProducerOfferLogs(id int) ([]*OfferLog, error)
 func (p *postgreOfferLogBase) UpdateOfferLog(offerLog *OfferLog) (*OfferLog, error) {
 	err := p.db.Update(offerLog)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return offerLog, nil
 }

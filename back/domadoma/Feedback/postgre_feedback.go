@@ -10,8 +10,8 @@ func NewPostgreFeedbackBase(configfile *domadoma.ConfigFile) (FeedbackBase, erro
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -42,9 +42,9 @@ func createSchema(db *pg.DB) error {
 func (p *postgreFeedbackBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {
 	err := p.db.Insert(feedback)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return feedback,nil
+	return feedback, nil
 }
 
 func (p *postgreFeedbackBase) GetFeedback(feedback *Feedback) (*Feedback, error) {
@@ -61,7 +61,7 @@ func (p *postgreFeedbackBase) ListFeedbacks() ([]*Feedback, error) {
 	if err != nil {
 		return nil, err
 	}
-	return feedbacks,nil
+	return feedbacks, nil
 }
 
 func (p *postgreFeedbackBase) ListProducerFeedbacks(id int) ([]*Feedback, error) {
@@ -73,10 +73,10 @@ func (p *postgreFeedbackBase) ListProducerFeedbacks(id int) ([]*Feedback, error)
 	return feedbacks, nil
 }
 
-func (p *postgreFeedbackBase) UpdateFeedback( feedback *Feedback) (*Feedback, error) {
+func (p *postgreFeedbackBase) UpdateFeedback(feedback *Feedback) (*Feedback, error) {
 	err := p.db.Update(feedback)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return feedback, nil
 }

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type RequestEndpoints interface{
+type RequestEndpoints interface {
 	GetRequest() func(c *gin.Context)
 
 	CreateRequest() func(c *gin.Context)
@@ -21,14 +21,13 @@ type RequestEndpoints interface{
 	UpdateRequest() func(c *gin.Context)
 
 	DeleteRequest() func(c *gin.Context)
-
 }
 
 func NewRequestEndpoints(requestBase Request.RequestBase, authorizationBase Authorization.AuthorizationBase) RequestEndpoints {
-	return &RequestEndpointsFactory{requestBase: requestBase, authorizationBase:authorizationBase}
+	return &RequestEndpointsFactory{requestBase: requestBase, authorizationBase: authorizationBase}
 }
 
-type RequestEndpointsFactory struct{
+type RequestEndpointsFactory struct {
 	authorizationBase Authorization.AuthorizationBase
 	requestBase       Request.RequestBase
 }
@@ -37,7 +36,7 @@ func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
@@ -46,9 +45,9 @@ func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 			return
 		}
 
-		id := c.Param( "requestid")
+		id := c.Param("requestid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error ":"No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": "No id provided"})
 			return
 		}
 
@@ -58,19 +57,19 @@ func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
 			return
 		}
 
-		request := &Request.Request{Id:intid}
+		request := &Request.Request{Id: intid}
 		request, err = f.requestBase.GetRequest(request)
-		if err != nil && errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such id in system": intid})
 			return
 		}
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
 			return
 		}
 
-		c.JSON(http.StatusOK,request)
+		c.JSON(http.StatusOK, request)
 	}
 }
 
@@ -78,19 +77,19 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
 		id := c.Param("consumerid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "No id provided"})
 			return
 		}
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
@@ -102,7 +101,7 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 		request := Request.Request{}
 		err = c.ShouldBindJSON(&request)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "Provided data format is wrong"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided data format is wrong"})
 			return
 		}
 
@@ -110,11 +109,11 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 		request.Created = time.Now()
 		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't create request"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't create request"})
 			return
 		}
 
-		c.JSON(http.StatusCreated,result)
+		c.JSON(http.StatusCreated, result)
 	}
 }
 
@@ -122,7 +121,7 @@ func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
@@ -147,59 +146,60 @@ func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
 			}
 			requests, err = f.requestBase.ListConsumerRequests(intid)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"Error":"Couldn't find requests"})
+				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find requests"})
 				return
 			}
 		}
-		c.JSON(http.StatusOK,requests)	}
+		c.JSON(http.StatusOK, requests)
+	}
 }
 
 func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
 		id := c.Param("consumerid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "No id provided"})
 			return
 		}
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != userid{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.UserId != userid {
 			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		id = c.Param("requestid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		requesttocheck := &Request.Request{Id:intid}
+		requesttocheck := &Request.Request{Id: intid}
 		requesttocheck, err = f.requestBase.GetRequest(requesttocheck)
-		if err != nil && errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such id in system": intid})
 			return
 		}
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
 			return
 		}
 
@@ -211,7 +211,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 		}
 
 		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && requesttocheck.ConsumerId != userid {
-			c.JSON(http.StatusForbidden,gin.H{"Error": "Not allowed"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -227,7 +227,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			request.Created = requesttocheck.Created
 		}
 
-		if request.Location == nil{
+		if request.Location == nil {
 			request.Location = requesttocheck.Location
 		}
 
@@ -245,7 +245,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		c.JSON(http.StatusOK,result)
+		c.JSON(http.StatusOK, result)
 	}
 }
 
@@ -253,19 +253,19 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't find token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
 		id := c.Param("consumerid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "No id provided"})
 			return
 		}
 
 		userid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
@@ -276,39 +276,39 @@ func (f RequestEndpointsFactory) DeleteRequest() func(c *gin.Context) {
 
 		id = c.Param("requestid")
 		if len(id) == 0 {
-			c.JSON(http.StatusBadRequest,gin.H{"Error": "No id provided"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "No id provided"})
 			return
 		}
 
 		intid, err := strconv.Atoi(id)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Provided id is not integer"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Provided id is not integer"})
 			return
 		}
 
-		request := &Request.Request{Id:intid}
+		request := &Request.Request{Id: intid}
 		request, err = f.requestBase.GetRequest(request)
-		if err != nil && errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusNotFound,gin.H{"No such id in system":intid})
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such id in system": intid})
 			return
 		}
 
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Db Error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
 			return
 		}
 
-		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && userid != request.ConsumerId{
+		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && userid != request.ConsumerId {
 			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
 		err = f.requestBase.DeleteRequest(intid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error": "Couldn't delete request"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't delete request"})
 			return
 		}
 
-		c.JSON(http.StatusOK,gin.H{"deletedid":intid})
+		c.JSON(http.StatusOK, gin.H{"deletedid": intid})
 	}
 }

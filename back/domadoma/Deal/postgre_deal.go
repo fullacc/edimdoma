@@ -11,8 +11,8 @@ func NewPostgreDealBase(configfile *domadoma.ConfigFile) (DealBase, error) {
 	fmt.Println(configfile)
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -40,12 +40,12 @@ func createSchema(db *pg.DB) error {
 	return nil
 }
 
-func (p *postgreDealBase) CreateDeal(deal *Deal,) (*Deal, error) {
+func (p *postgreDealBase) CreateDeal(deal *Deal, ) (*Deal, error) {
 	err := p.db.Insert(deal)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return deal,nil
+	return deal, nil
 }
 
 func (p *postgreDealBase) GetDeal(deal *Deal) (*Deal, error) {
@@ -62,7 +62,7 @@ func (p *postgreDealBase) ListDeals() ([]*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	return deals,nil
+	return deals, nil
 }
 
 func (p *postgreDealBase) ListConsumerDeals(id int) ([]*Deal, error) {
@@ -88,7 +88,7 @@ func (p *postgreDealBase) ListActiveDeals() ([]*Deal, error) {
 	if err != nil {
 		return nil, err
 	}
-	return deals,nil
+	return deals, nil
 }
 
 func (p *postgreDealBase) ListActiveConsumerDeals(id int) ([]*Deal, error) {
@@ -112,7 +112,7 @@ func (p *postgreDealBase) ListActiveProducerDeals(id int) ([]*Deal, error) {
 func (p *postgreDealBase) UpdateDeal(deal *Deal) (*Deal, error) {
 	err := p.db.Update(deal)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return deal, nil
 }

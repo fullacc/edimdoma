@@ -10,8 +10,8 @@ func NewPostgreOfferBase(configfile *domadoma.ConfigFile) (OfferBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -42,7 +42,7 @@ func createSchema(db *pg.DB) error {
 func (p *postgreOfferBase) CreateOffer(offer *Offer) (*Offer, error) {
 	err := p.db.Insert(offer)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return offer, nil
 }
@@ -64,9 +64,9 @@ func (p *postgreOfferBase) ListOffers() ([]*Offer, error) {
 	return offers, nil
 }
 
-func (p *postgreOfferBase) ListProducerOffers(id int) ([]*Offer, error){
+func (p *postgreOfferBase) ListProducerOffers(id int) ([]*Offer, error) {
 	var offers []*Offer
-	err := p.db.Model(&offers).Where("producer_id = ?",id).Select()
+	err := p.db.Model(&offers).Where("producer_id = ?", id).Select()
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +76,7 @@ func (p *postgreOfferBase) ListProducerOffers(id int) ([]*Offer, error){
 func (p *postgreOfferBase) UpdateOffer(offer *Offer) (*Offer, error) {
 	err := p.db.Update(offer)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return offer, nil
 }

@@ -10,8 +10,8 @@ func NewPostgreRequestBase(configfile *domadoma.ConfigFile) (RequestBase, error)
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -42,9 +42,9 @@ func createSchema(db *pg.DB) error {
 func (p *postgreRequestBase) CreateRequest(request *Request) (*Request, error) {
 	err := p.db.Insert(request)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return request,nil
+	return request, nil
 }
 
 func (p *postgreRequestBase) GetRequest(request *Request) (*Request, error) {
@@ -61,22 +61,22 @@ func (p *postgreRequestBase) ListRequests() ([]*Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	return requests,nil
+	return requests, nil
 }
 
 func (p *postgreRequestBase) ListConsumerRequests(id int) ([]*Request, error) {
 	var requests []*Request
-	err := p.db.Model(&requests).Where("consumer_id = ?",id).Select()
+	err := p.db.Model(&requests).Where("consumer_id = ?", id).Select()
 	if err != nil {
 		return nil, err
 	}
-	return requests,nil
+	return requests, nil
 }
 
-func (p *postgreRequestBase) UpdateRequest( request *Request) (*Request, error) {
+func (p *postgreRequestBase) UpdateRequest(request *Request) (*Request, error) {
 	err := p.db.Update(request)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return request, nil
 }

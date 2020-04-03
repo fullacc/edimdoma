@@ -24,8 +24,8 @@ import (
 )
 
 var (
-	port=""
-	config="./config.json"
+	port   = ""
+	config = "./config.json"
 )
 
 func main() {
@@ -55,13 +55,13 @@ func main() {
 }
 
 func run(c *cli.Context) error {
-	if err:=LaunchServer(config);err!=nil {
+	if err := LaunchServer(config); err != nil {
 		return err
 	}
 	return nil
 }
 
-func LaunchServer(configpath string) error{
+func LaunchServer(configpath string) error {
 	file, err := os.Open(configpath)
 	if err != nil {
 		return err
@@ -119,95 +119,94 @@ func LaunchServer(configpath string) error{
 		panic(err)
 	}
 
-	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase,redisAuthorizationBase,postgreOfferBase,postgreOfferLogBase,postgreRequestBase)
+	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase, redisAuthorizationBase, postgreOfferBase, postgreOfferLogBase, postgreRequestBase)
 
-	postgreFeedbackEndpoints := Endpoints.NewFeedbackEndpoints(postgreFeedbackBase,redisAuthorizationBase,postgreDealBase,postgreUserBase)
+	postgreFeedbackEndpoints := Endpoints.NewFeedbackEndpoints(postgreFeedbackBase, redisAuthorizationBase, postgreDealBase, postgreUserBase)
 
-	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase,redisAuthorizationBase)
+	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase, redisAuthorizationBase)
 
-	postgreOfferLogEndpoints := Endpoints.NewOfferLogEndpoints(postgreOfferLogBase,redisAuthorizationBase)
+	postgreOfferLogEndpoints := Endpoints.NewOfferLogEndpoints(postgreOfferLogBase, redisAuthorizationBase)
 
-	postgreRequestEndpoints := Endpoints.NewRequestEndpoints(postgreRequestBase,redisAuthorizationBase)
+	postgreRequestEndpoints := Endpoints.NewRequestEndpoints(postgreRequestBase, redisAuthorizationBase)
 
-	postgreUserEndpoints := Endpoints.NewUserEndpoints(postgreUserBase,redisAuthorizationBase)
+	postgreUserEndpoints := Endpoints.NewUserEndpoints(postgreUserBase, redisAuthorizationBase)
 
-	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase,smsBase,postgreUserBase)
+	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase, smsBase, postgreUserBase)
 
 	router := gin.Default()
 
 	api := router.Group("api")
 	{
 
-		api.GET("deal",postgreDealEndpoints.ListDeals())
-		api.GET("feedback",postgreFeedbackEndpoints.ListFeedbacks())
-		api.GET("offer",postgreOfferEndpoints.ListOffers())
-		api.GET("offer_log",postgreOfferLogEndpoints.ListOfferLogs())
-		api.GET("request",postgreRequestEndpoints.ListRequests())
-		api.GET("request/:requestid",postgreRequestEndpoints.GetRequest())
-		api.GET("user",postgreUserEndpoints.ListUsers())
-		api.POST("user",postgreUserEndpoints.CreateUser())
-
+		api.GET("deal", postgreDealEndpoints.ListDeals())
+		api.GET("feedback", postgreFeedbackEndpoints.ListFeedbacks())
+		api.GET("offer", postgreOfferEndpoints.ListOffers())
+		api.GET("offer_log", postgreOfferLogEndpoints.ListOfferLogs())
+		api.GET("request", postgreRequestEndpoints.ListRequests())
+		api.GET("request/:requestid", postgreRequestEndpoints.GetRequest())
+		api.GET("user", postgreUserEndpoints.ListUsers())
+		api.POST("user", postgreUserEndpoints.CreateUser())
 
 		deals := api.Group("deal")
 		{
-			deals.GET(":dealid",postgreDealEndpoints.GetDeal())
-			deals.DELETE(":dealid",postgreDealEndpoints.DeleteDeal())
-			deals.PUT(":dealid",postgreDealEndpoints.UpdateDeal())
-			deals.PATCH(":dealid/complete",postgreDealEndpoints.CompleteDeal())
+			deals.GET(":dealid", postgreDealEndpoints.GetDeal())
+			deals.DELETE(":dealid", postgreDealEndpoints.DeleteDeal())
+			deals.PUT(":dealid", postgreDealEndpoints.UpdateDeal())
+			deals.PATCH(":dealid/complete", postgreDealEndpoints.CompleteDeal())
 		}
 
 		consumers := api.Group("consumer")
 		{
 			requests := consumers.Group(":consumerid/request")
 			{
-				requests.POST("",postgreRequestEndpoints.CreateRequest())
-				requests.GET("",postgreRequestEndpoints.ListRequests())
+				requests.POST("", postgreRequestEndpoints.CreateRequest())
+				requests.GET("", postgreRequestEndpoints.ListRequests())
 
-				requests.PUT(":requestid",postgreRequestEndpoints.UpdateRequest())
-				requests.DELETE(":requestid",postgreRequestEndpoints.DeleteRequest())
+				requests.PUT(":requestid", postgreRequestEndpoints.UpdateRequest())
+				requests.DELETE(":requestid", postgreRequestEndpoints.DeleteRequest())
 			}
-			consumers.POST(":consumerid/offer/:offerid",postgreDealEndpoints.CreateDeal())//needs quantity and price field
-			consumers.GET(":consumerid/deal",postgreDealEndpoints.ListDeals())//requires onlyactive query
+			consumers.POST(":consumerid/offer/:offerid", postgreDealEndpoints.CreateDeal()) //needs quantity and price field
+			consumers.GET(":consumerid/deal", postgreDealEndpoints.ListDeals())             //requires onlyactive query
 
-			consumers.POST(":consumerid/deal/:dealid/feedback",postgreFeedbackEndpoints.CreateFeedback())//only value and text
-			consumers.GET(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.GetFeedback())
-			consumers.PUT(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.UpdateFeedback())
-			consumers.DELETE(":consumerid/feedback/:feedbackid",postgreFeedbackEndpoints.DeleteFeedback())
+			consumers.POST(":consumerid/deal/:dealid/feedback", postgreFeedbackEndpoints.CreateFeedback()) //only value and text
+			consumers.GET(":consumerid/feedback/:feedbackid", postgreFeedbackEndpoints.GetFeedback())
+			consumers.PUT(":consumerid/feedback/:feedbackid", postgreFeedbackEndpoints.UpdateFeedback())
+			consumers.DELETE(":consumerid/feedback/:feedbackid", postgreFeedbackEndpoints.DeleteFeedback())
 		}
 
 		producers := api.Group("producer")
 		{
 			offers := producers.Group(":producerid/offer")
 			{
-				offers.POST("",postgreOfferEndpoints.CreateOffer())
-				offers.GET("",postgreOfferEndpoints.ListOffers())
-				offers.GET(":offerid",postgreOfferEndpoints.GetOffer())
-				offers.PUT(":offerid",postgreOfferEndpoints.UpdateOffer())
-				offers.DELETE(":offerid",postgreOfferEndpoints.DeleteOffer())
+				offers.POST("", postgreOfferEndpoints.CreateOffer())
+				offers.GET("", postgreOfferEndpoints.ListOffers())
+				offers.GET(":offerid", postgreOfferEndpoints.GetOffer())
+				offers.PUT(":offerid", postgreOfferEndpoints.UpdateOffer())
+				offers.DELETE(":offerid", postgreOfferEndpoints.DeleteOffer())
 			}
-			producers.POST(":producerid/request/:requestid",postgreDealEndpoints.CreateDeal())//needs price only
-			producers.GET(":producerid/deal",postgreDealEndpoints.ListDeals())//requires onlyactive query
+			producers.POST(":producerid/request/:requestid", postgreDealEndpoints.CreateDeal()) //needs price only
+			producers.GET(":producerid/deal", postgreDealEndpoints.ListDeals())                 //requires onlyactive query
 
-			producers.GET(":producerid/feedback",postgreFeedbackEndpoints.ListFeedbacks())
+			producers.GET(":producerid/feedback", postgreFeedbackEndpoints.ListFeedbacks())
 			offerlogs := producers.Group(":producerid/offerlog")
 			{
-				offerlogs.GET("",postgreOfferLogEndpoints.ListOfferLogs())
-				offerlogs.GET(":offerlogid",postgreOfferLogEndpoints.GetOfferLog())
-				offerlogs.DELETE(":offerlogid",postgreOfferLogEndpoints.DeleteOfferLog())
+				offerlogs.GET("", postgreOfferLogEndpoints.ListOfferLogs())
+				offerlogs.GET(":offerlogid", postgreOfferLogEndpoints.GetOfferLog())
+				offerlogs.DELETE(":offerlogid", postgreOfferLogEndpoints.DeleteOfferLog())
 			}
 		}
 
 		users := api.Group("user")
 		{
-			users.GET(":userid",postgreUserEndpoints.GetUser())
-			users.PUT(":userid",postgreUserEndpoints.UpdateUser())
-			users.DELETE(":userid",postgreUserEndpoints.DeleteUser())
-			users.POST("registration",redisAuthorizationEndpoints.RegisterUser())
-			users.POST("checkphone",redisAuthorizationEndpoints.CheckPhone())
-			users.POST("checkcode",redisAuthorizationEndpoints.CheckCode())
-			users.POST("login",redisAuthorizationEndpoints.LoginUser())
-			users.PATCH("logout",redisAuthorizationEndpoints.LogoutUser())
-			users.PUT(":userid/changepassword",redisAuthorizationEndpoints.ChangePassword())
+			users.GET(":userid", postgreUserEndpoints.GetUser())
+			users.PUT(":userid", postgreUserEndpoints.UpdateUser())
+			users.DELETE(":userid", postgreUserEndpoints.DeleteUser())
+			users.POST("registration", redisAuthorizationEndpoints.RegisterUser())
+			users.POST("checkphone", redisAuthorizationEndpoints.CheckPhone())
+			users.POST("checkcode", redisAuthorizationEndpoints.CheckCode())
+			users.POST("login", redisAuthorizationEndpoints.LoginUser())
+			users.PATCH("logout", redisAuthorizationEndpoints.LogoutUser())
+			users.PUT(":userid/changepassword", redisAuthorizationEndpoints.ChangePassword())
 		}
 	}
 
@@ -218,13 +217,13 @@ func LaunchServer(configpath string) error{
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
-	signal.Notify(c, os.Interrupt,syscall.SIGTERM)
-	go func(){
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
 		<-c
 		done <- true
 	}()
 
-	<- done
+	<-done
 	log.Printf("server shutdown")
 	os.Exit(1)
 

@@ -2,7 +2,7 @@ package OfferLog
 
 import "time"
 
-type OfferLogBase interface{
+type OfferLogBase interface {
 	CreateOfferLog(offerLog *OfferLog) (*OfferLog, error)
 
 	GetOfferLog(offerLog *OfferLog) (*OfferLog, error)
@@ -13,7 +13,7 @@ type OfferLogBase interface{
 
 	UpdateOfferLog(offerLog *OfferLog) (*OfferLog, error)
 
-	DeleteOfferLog(id int)  error
+	DeleteOfferLog(id int) error
 }
 
 type OfferLog struct {
@@ -26,4 +26,3 @@ type OfferLog struct {
 	Location          []float64 `json:"location" binding:"required"`
 	Created           time.Time `json:"created" binding:"required"`
 }
-

@@ -11,8 +11,8 @@ func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
 
 	db := pg.Connect(&pg.Options{
 		Database: configfile.PgDbName,
-		Addr: configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User: configfile.PgDbUser,
+		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
+		User:     configfile.PgDbUser,
 		Password: configfile.PgDbPassword,
 	})
 
@@ -40,13 +40,12 @@ func createSchema(db *pg.DB) error {
 	return nil
 }
 
-
 func (p *postgreUserBase) CreateUser(user *User) (*User, error) {
 	err := p.db.Insert(user)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
-	return user,nil
+	return user, nil
 }
 
 func (p *postgreUserBase) GetUser(user *User) (*User, error) {
@@ -55,11 +54,11 @@ func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 		err = p.db.Select(user)
 	} else {
 		if user.UserName != "" {
-			err = p.db.Model(user).Where("user_name = ?",user.UserName).Limit(1).Select()
+			err = p.db.Model(user).Where("user_name = ?", user.UserName).Limit(1).Select()
 			fmt.Println(user)
 		} else {
 			if user.Phone != "" {
-				err = p.db.Model(user).Where("phone = ?",user.Phone).Limit(1).Select()
+				err = p.db.Model(user).Where("phone = ?", user.Phone).Limit(1).Select()
 			}
 		}
 	}
@@ -75,13 +74,13 @@ func (p *postgreUserBase) ListUsers() ([]*User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return users,nil
+	return users, nil
 }
 
-func (p *postgreUserBase) UpdateUser( user *User) (*User, error) {
+func (p *postgreUserBase) UpdateUser(user *User) (*User, error) {
 	err := p.db.Update(user)
 	if err != nil {
-		return nil,err
+		return nil, err
 	}
 	return user, nil
 }

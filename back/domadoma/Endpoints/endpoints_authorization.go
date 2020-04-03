@@ -15,15 +15,14 @@ import (
 	"time"
 )
 
-type AuthorizationEndpoints interface{
-	
+type AuthorizationEndpoints interface {
 	RegisterUser() func(c *gin.Context)
-	
+
 	LoginUser() func(c *gin.Context)
 
 	LogoutUser() func(c *gin.Context)
 
-	ChangePassword() func (c *gin.Context)
+	ChangePassword() func(c *gin.Context)
 
 	CheckPhone() func(c *gin.Context)
 
@@ -31,10 +30,10 @@ type AuthorizationEndpoints interface{
 }
 
 func NewAuthorizationEndpoints(authorizationBase Authorization.AuthorizationBase, smsBase SMS.SMSBase, userBase User.UserBase) AuthorizationEndpoints {
-	return &AuthorizationEndpointsFactory{authorizationBase: authorizationBase, smsBase:smsBase, userBase:userBase}
+	return &AuthorizationEndpointsFactory{authorizationBase: authorizationBase, smsBase: smsBase, userBase: userBase}
 }
 
-type AuthorizationEndpointsFactory struct{
+type AuthorizationEndpointsFactory struct {
 	authorizationBase Authorization.AuthorizationBase
 	userBase          User.UserBase
 	smsBase           SMS.SMSBase
@@ -43,13 +42,13 @@ type AuthorizationEndpointsFactory struct{
 func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 	return func(c *gin.Context) {
 		currtoken, err := f.authorizationBase.GetRegistrationToken(c.Request.Header.Get("Token"))
-		if err != nil || currtoken == nil{
+		if err != nil || currtoken == nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
 			return
 		}
 
-		if currtoken.Code != "goodtogo"{
-			c.JSON(http.StatusForbidden,gin.H{"Error":"Not allowed"})
+		if currtoken.Code != "goodtogo" {
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
 			return
 		}
 
@@ -79,8 +78,8 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		if err != nil && !errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
+		if err != nil && !errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
 			return
 		}
 
@@ -102,8 +101,8 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		if err != nil && !errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
+		if err != nil && !errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
 			return
 		}
 
@@ -132,21 +131,21 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 		}
 
 		token, err := Authorization.GenerateToken()
-		if err != nil{
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't make you safe"})
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Can't make you safe"})
 			return
 		}
 
 		input := &Authorization.AuthToken{Permission: newuser.Role, Token: token, UserId: result.Id}
 		data, err := json.Marshal(input)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't"})
 			return
 		}
 
 		err = f.authorizationBase.SetToken(input.Token, data, 4*time.Hour)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't save token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Can't save token"})
 			return
 		}
 
@@ -187,8 +186,8 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 		}
 
 		lookupuser, err = f.userBase.GetUser(lookupuser)
-		if err != nil && errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusNotFound,gin.H{"No such user in system":user.Login})
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such user in system": user.Login})
 			return
 		}
 		if err != nil {
@@ -204,7 +203,7 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 
 		token, err := Authorization.GenerateToken()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Can't make you safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Can't make you safe"})
 			return
 		}
 
@@ -212,7 +211,7 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 		data, err := json.Marshal(input)
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't make you safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
@@ -271,8 +270,8 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 
 		user := &User.User{Id: intid}
 		user, err = f.userBase.GetUser(user)
-		if err != nil && errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusNotFound,gin.H{"No such user in system":intid})
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such user in system": intid})
 			return
 		}
 
@@ -329,34 +328,34 @@ func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 			return
 		}
 
-		if err != nil && !errors.Is(err,pg.ErrNoRows){
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Db error"})
+		if err != nil && !errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
 			return
 		}
 
-		sms := SMS.SMS{Phone:number.Phone}
+		sms := SMS.SMS{Phone: number.Phone}
 		sentSMS, err := f.smsBase.SendSMS(sms)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"Couldn't send sms"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't send sms"})
 			return
 		}
 
 		token, err := Authorization.GenerateToken()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error":"Couldn't make you safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
 			return
 		}
 
-		input := &Authorization.RegistrationToken{Token: token,Phone: sentSMS.Phone,Code: sentSMS.Code}
+		input := &Authorization.RegistrationToken{Token: token, Phone: sentSMS.Phone, Code: sentSMS.Code}
 		data, err := json.Marshal(input)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't;("})
 			return
 		}
 
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Minute)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't save token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't save token"})
 			return
 		}
 
@@ -365,7 +364,7 @@ func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 }
 
 func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
-	return func (c *gin.Context) {
+	return func(c *gin.Context) {
 		currtoken, err := f.authorizationBase.GetRegistrationToken(c.Request.Header.Get("Token"))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
@@ -375,7 +374,7 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 		codetocheck := &Authorization.RegistrationCode{}
 		err = c.ShouldBindJSON(&codetocheck)
 		if err != nil {
-			c.JSON(http.StatusBadRequest,gin.H{"Error":"Provided Code is in wrong format"})
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided Code is in wrong format"})
 			return
 		}
 
@@ -385,32 +384,31 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 			return
 		}
 
-		if codetocheck.Code != currtoken.Code{
+		if codetocheck.Code != currtoken.Code {
 			f.authorizationBase.DeleteToken(currtoken.Token)
-			c.JSON(http.StatusForbidden,gin.H{"Error":"Wrong Code, removing your token"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Wrong Code, removing your token"})
 			return
 		}
 
 		token, err := Authorization.GenerateToken()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H {"Error":"Couldn't make you safe"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
 			return
 		}
 
-		input := &Authorization.RegistrationToken{Token: token, Phone:currtoken.Phone ,Code:"goodtogo"}
+		input := &Authorization.RegistrationToken{Token: token, Phone: currtoken.Phone, Code: "goodtogo"}
 		data, err := json.Marshal(input)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't;("})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't;("})
 			return
 		}
 
 		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Minute)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError,gin.H{"Error":"I just can't save token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't save token"})
 			return
 		}
 
-		c.JSON(http.StatusOK,gin.H{"Token":input.Token})
+		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
 	}
 }
-

@@ -2,7 +2,7 @@ package Request
 
 import "time"
 
-type RequestBase interface{
+type RequestBase interface {
 	CreateRequest(request *Request) (*Request, error)
 
 	GetRequest(request *Request) (*Request, error)
@@ -13,7 +13,7 @@ type RequestBase interface{
 
 	UpdateRequest(request *Request) (*Request, error)
 
-	DeleteRequest(id int)  error
+	DeleteRequest(id int) error
 }
 
 type Request struct {
@@ -25,4 +25,3 @@ type Request struct {
 	Location   []float64 `json:"location" binding:"required"`
 	Created    time.Time `json:"created"`
 }
-
