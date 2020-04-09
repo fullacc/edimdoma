@@ -15,6 +15,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/contrib/cors"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
@@ -24,8 +25,7 @@ import (
 )
 
 var (
-	port   = ""
-	config = "./config.json"
+	config = ""
 )
 
 func main() {
@@ -134,6 +134,8 @@ func LaunchServer(configpath string) error {
 	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase, smsBase, postgreUserBase)
 
 	router := gin.Default()
+
+	router.Use(cors.Default())
 
 	api := router.Group("api")
 	{

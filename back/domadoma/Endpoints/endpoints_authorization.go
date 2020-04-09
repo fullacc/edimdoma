@@ -385,7 +385,7 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 		}
 
 		if codetocheck.Code != currtoken.Code {
-			f.authorizationBase.DeleteToken(currtoken.Token)
+			_ = f.authorizationBase.DeleteToken(currtoken.Token)
 			c.JSON(http.StatusForbidden, gin.H{"Error": "Wrong Code, removing your token"})
 			return
 		}

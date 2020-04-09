@@ -8,5 +8,3 @@ type SMS struct {
 	Phone string `json:"phone"`
 	Code  string `json:"code"`
 }
-
-const numberBytes = "0123456789"

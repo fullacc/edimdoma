@@ -119,17 +119,17 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 
 func (f RequestEndpointsFactory) ListRequests() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
-			return
-		}
-
-		if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
-			c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
-			return
-		}
-
+		//curruser, err := f.authorizationBase.GetAuthToken(c.Request.Header.Get("Token"))
+		//if err != nil {
+		//	c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
+		//	return
+		//}
+		//
+		//if curruser.Permission != Authorization.Admin && curruser.Permission != Authorization.Manager && curruser.Permission != Authorization.Regular {
+		//	c.JSON(http.StatusForbidden, gin.H{"Error": "Not allowed"})
+		//	return
+		//}
+		var err error
 		var requests []*Request.Request
 		id := c.Param("consumerid")
 		if len(id) == 0 {
