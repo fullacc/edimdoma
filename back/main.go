@@ -15,7 +15,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/contrib/cors"
+	"github.com/gin-contrib/cors"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"

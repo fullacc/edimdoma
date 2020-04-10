@@ -143,7 +143,7 @@ func (f AuthorizationEndpointsFactory) RegisterUser() func(c *gin.Context) {
 			return
 		}
 
-		err = f.authorizationBase.SetToken(input.Token, data, 4*time.Hour)
+		err = f.authorizationBase.SetToken(input.Token, data, 20*time.Hour)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Can't save token"})
 			return
@@ -209,12 +209,12 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 
 		input := &Authorization.AuthToken{Permission: lookupuser.Role, Token: token, UserId: lookupuser.Id}
 		data, err := json.Marshal(input)
-		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Hour)
+		err = f.authorizationBase.SetToken(input.Token, data, 20*time.Hour)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
+		c.JSON(http.StatusOK, gin.H{"User": lookupuser, "Token": input.Token})
 	}
 }
 
