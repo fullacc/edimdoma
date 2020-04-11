@@ -21,7 +21,13 @@ type OfferBase interface {
 type Offer struct {
 	Id                int       `json:"id"`
 	ProducerId        int       `json:"producer_id"`
-	Name              string    `json:"name" binding:"required"`
+	FoodName          string    `json:"food_name" binding:"required"`
+	Type              int       `json:"type"`
+	Myaso             int       `json:"myaso"`
+	Halal             int       `json:"halal"`
+	Vegan             int       `json:"vegan"`
+	Spicy             int       `json:"spicy"`
+	Description       string    `json:"description"`
 	Price             int       `json:"price" binding:"required"`
 	InitialQuantity   int       `json:"initial_quantity" binding:"required"`
 	AvailableQuantity int       `json:"available_quantity"`

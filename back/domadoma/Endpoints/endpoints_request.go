@@ -215,16 +215,32 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			return
 		}
 
-		request.Id = requesttocheck.Id
-
-		if request.Name == "" {
-			request.Name = requesttocheck.Name
+		if request.FoodName == "" {
+			request.FoodName = requesttocheck.FoodName
 		}
 
-		request.ConsumerId = requesttocheck.ConsumerId
+		if request.Description == "" {
+			request.Description = requesttocheck.Description
+		}
 
-		if request.Created.IsZero() {
-			request.Created = requesttocheck.Created
+		if request.Type == 0 {
+			request.Type = requesttocheck.Type
+		}
+
+		if request.Myaso == 0 {
+			request.Myaso = requesttocheck.Myaso
+		}
+
+		if request.Halal == 0 {
+			request.Halal = requesttocheck.Halal
+		}
+
+		if request.Vegan == 0 {
+			request.Vegan = requesttocheck.Vegan
+		}
+
+		if request.Spicy == 0 {
+			request.Spicy = requesttocheck.Spicy
 		}
 
 		if request.Location == nil {
@@ -238,6 +254,10 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 		if request.Quantity == 0 {
 			request.Quantity = requesttocheck.Quantity
 		}
+
+		request.Id = requesttocheck.Id
+		request.ConsumerId = requesttocheck.ConsumerId
+		request.Created = requesttocheck.Created
 
 		result, err := f.requestBase.UpdateRequest(request)
 		if err != nil {

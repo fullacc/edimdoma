@@ -204,14 +204,32 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			return
 		}
 
-		if offer.Name == "" {
-			offer.Name = offertocheck.Name
+		if offer.FoodName == "" {
+			offer.FoodName = offertocheck.FoodName
 		}
 
-		offer.ProducerId = offertocheck.ProducerId
+		if offer.Description == "" {
+			offer.Description = offertocheck.Description
+		}
 
-		if offer.Created.IsZero() {
-			offer.Created = offertocheck.Created
+		if offer.Type == 0 {
+			offer.Type = offertocheck.Type
+		}
+
+		if offer.Myaso == 0 {
+			offer.Myaso = offertocheck.Myaso
+		}
+
+		if offer.Halal == 0 {
+			offer.Halal = offertocheck.Halal
+		}
+
+		if offer.Vegan == 0 {
+			offer.Vegan = offertocheck.Vegan
+		}
+
+		if offer.Spicy == 0 {
+			offer.Spicy = offertocheck.Spicy
 		}
 
 		if offer.Location == nil {
@@ -231,6 +249,8 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 		}
 
 		offer.Id = offertocheck.Id
+		offer.ProducerId = offertocheck.ProducerId
+	 	offer.Created = offertocheck.Created
 
 		result, err := f.offerBase.UpdateOffer(offer)
 		if err != nil {

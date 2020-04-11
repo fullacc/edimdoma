@@ -136,9 +136,16 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			}
 
 			deal.Quantity = request.Quantity
-			deal.Food = request.Name
+			deal.FoodName = request.FoodName
 			deal.ConsumerId = request.ConsumerId
 			deal.ProducerId = producerid
+			deal.Type = request.Type
+			deal.Myaso = request.Myaso
+			deal.Halal = request.Halal
+			deal.Vegan = request.Vegan
+			deal.Spicy = request.Spicy
+			deal.Description = request.Description
+
 
 			err = f.requestBase.DeleteRequest(intid)
 			if err != nil {
@@ -173,9 +180,16 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 					return
 				}
 
-				deal.Food = offer.Name
+				deal.FoodName = offer.FoodName
 				deal.ConsumerId = consumerid
 				deal.ProducerId = offer.ProducerId
+				deal.Type = offer.Type
+				deal.Myaso = offer.Myaso
+				deal.Halal = offer.Halal
+				deal.Vegan = offer.Vegan
+				deal.Spicy = offer.Spicy
+				deal.Description = offer.Description
+
 
 				if deal.Quantity < 1 {
 					c.JSON(http.StatusBadRequest, gin.H{"Error": "Wrong quantity"})

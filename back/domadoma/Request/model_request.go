@@ -17,11 +17,17 @@ type RequestBase interface {
 }
 
 type Request struct {
-	Id         int       `json:"id"`
-	ConsumerId int       `json:"consumer_id"`
-	Name       string    `json:"name" binding:"required"`
-	Price      int       `json:"price" binding:"required"`
-	Quantity   int       `json:"quantity" binding:"required"`
-	Location   []float64 `json:"location" binding:"required"`
-	Created    time.Time `json:"created"`
+	Id          int       `json:"id"`
+	ConsumerId  int       `json:"consumer_id"`
+	FoodName    string    `json:"food_name" binding:"required"`
+	Type        int       `json:"type"`
+	Myaso       int       `json:"myaso"`
+	Halal       int       `json:"halal"`
+	Vegan       int       `json:"vegan"`
+	Spicy       int       `json:"spicy"`
+	Description string    `json:"description"`
+	Price       int       `json:"price" binding:"required"`
+	Quantity    int       `json:"quantity" binding:"required"`
+	Location    []float64 `json:"location" binding:"required"`
+	Created     time.Time `json:"created"`
 }
