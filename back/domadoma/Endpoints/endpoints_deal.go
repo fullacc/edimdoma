@@ -7,6 +7,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/go-pg/pg"
 	"net/http"
@@ -28,8 +29,8 @@ type DealEndpoints interface {
 	CompleteDeal() func(c *gin.Context)
 }
 
-func NewDealEndpoints(dealBase Deal.DealBase, authorizationBase Authorization.AuthorizationBase, offerBase Offer.OfferBase, offerLogBase OfferLog.OfferLogBase, requestBase Request.RequestBase) DealEndpoints {
-	return &DealEndpointsFactory{dealBase: dealBase, authorizationBase: authorizationBase, offerBase: offerBase, offerLogBase: offerLogBase, requestBase: requestBase}
+func NewDealEndpoints(dealBase Deal.DealBase, authorizationBase Authorization.AuthorizationBase, offerBase Offer.OfferBase, offerLogBase OfferLog.OfferLogBase, requestBase Request.RequestBase, userBase User.UserBase) DealEndpoints {
+	return &DealEndpointsFactory{dealBase: dealBase, authorizationBase: authorizationBase, offerBase: offerBase, offerLogBase: offerLogBase, requestBase: requestBase, userBase: userBase}
 }
 
 type DealEndpointsFactory struct {
@@ -38,6 +39,7 @@ type DealEndpointsFactory struct {
 	offerBase         Offer.OfferBase
 	offerLogBase      OfferLog.OfferLogBase
 	requestBase       Request.RequestBase
+	userBase    User.UserBase
 }
 
 func (f DealEndpointsFactory) GetDeal() func(c *gin.Context) {
@@ -135,10 +137,24 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 				return
 			}
 
+			user := &User.User{Id:producerid}
+			user, err  = f.userBase.GetUser(user)
+			if err != nil && errors.Is(err, pg.ErrNoRows) {
+				c.JSON(http.StatusNotFound, gin.H{"No such id in system": producerid})
+				return
+			}
+
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
+				return
+			}
+
 			deal.Quantity = request.Quantity
 			deal.FoodName = request.FoodName
 			deal.ConsumerId = request.ConsumerId
-			deal.ProducerId = producerid
+			deal.ConsumerName = request.ConsumerName
+			deal.ProducerId = user.Id
+			deal.ProducerName = user.UserName
 			deal.Type = request.Type
 			deal.Myaso = request.Myaso
 			deal.Halal = request.Halal
@@ -180,9 +196,23 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 					return
 				}
 
+				user := &User.User{Id:consumerid}
+				user, err  = f.userBase.GetUser(user)
+				if err != nil && errors.Is(err, pg.ErrNoRows) {
+					c.JSON(http.StatusNotFound, gin.H{"No such id in system": consumerid})
+					return
+				}
+
+				if err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
+					return
+				}
+
 				deal.FoodName = offer.FoodName
-				deal.ConsumerId = consumerid
+				deal.ConsumerId = user.Id
+				deal.ConsumerName = user.UserName
 				deal.ProducerId = offer.ProducerId
+				deal.ProducerName = offer.ProducerName
 				deal.Type = offer.Type
 				deal.Myaso = offer.Myaso
 				deal.Halal = offer.Halal
@@ -373,7 +403,9 @@ func (f DealEndpointsFactory) UpdateDeal() func(c *gin.Context) {
 
 		deal.Id = dealtogetid.Id
 		deal.ProducerId = dealtogetid.ProducerId
+		deal.ProducerName = dealtogetid.ProducerName
 		deal.ConsumerId = dealtogetid.ConsumerId
+		deal.ConsumerName = dealtogetid.ConsumerName
 		deal.Created = dealtogetid.Created
 
 		result, err := f.dealBase.UpdateDeal(deal)

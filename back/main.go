@@ -15,7 +15,6 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
-	"github.com/gin-contrib/cors"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
@@ -119,23 +118,22 @@ func LaunchServer(configpath string) error {
 		panic(err)
 	}
 
-	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase, redisAuthorizationBase, postgreOfferBase, postgreOfferLogBase, postgreRequestBase)
+	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase, redisAuthorizationBase, postgreOfferBase, postgreOfferLogBase, postgreRequestBase, postgreUserBase)
 
 	postgreFeedbackEndpoints := Endpoints.NewFeedbackEndpoints(postgreFeedbackBase, redisAuthorizationBase, postgreDealBase, postgreUserBase)
 
-	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase, redisAuthorizationBase)
+	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase, redisAuthorizationBase, postgreUserBase)
 
 	postgreOfferLogEndpoints := Endpoints.NewOfferLogEndpoints(postgreOfferLogBase, redisAuthorizationBase)
 
-	postgreRequestEndpoints := Endpoints.NewRequestEndpoints(postgreRequestBase, redisAuthorizationBase)
+	postgreRequestEndpoints := Endpoints.NewRequestEndpoints(postgreRequestBase, redisAuthorizationBase, postgreUserBase)
 
 	postgreUserEndpoints := Endpoints.NewUserEndpoints(postgreUserBase, redisAuthorizationBase)
 
 	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase, smsBase, postgreUserBase)
 
 	router := gin.Default()
-
-	router.Use(cors.Default())
+	router.Use(CORS())
 
 	api := router.Group("api")
 	{
@@ -230,4 +228,19 @@ func LaunchServer(configpath string) error {
 	os.Exit(1)
 
 	return nil
+}
+func CORS() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With, Token")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT, PATCH, DELETE")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }

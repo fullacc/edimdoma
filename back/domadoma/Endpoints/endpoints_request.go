@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/go-pg/pg"
 	"net/http"
@@ -23,13 +24,14 @@ type RequestEndpoints interface {
 	DeleteRequest() func(c *gin.Context)
 }
 
-func NewRequestEndpoints(requestBase Request.RequestBase, authorizationBase Authorization.AuthorizationBase) RequestEndpoints {
-	return &RequestEndpointsFactory{requestBase: requestBase, authorizationBase: authorizationBase}
+func NewRequestEndpoints(requestBase Request.RequestBase, authorizationBase Authorization.AuthorizationBase, userBase User.UserBase) RequestEndpoints {
+	return &RequestEndpointsFactory{requestBase: requestBase, authorizationBase: authorizationBase, userBase: userBase}
 }
 
 type RequestEndpointsFactory struct {
 	authorizationBase Authorization.AuthorizationBase
 	requestBase       Request.RequestBase
+	userBase 		  User.UserBase
 }
 
 func (f RequestEndpointsFactory) GetRequest() func(c *gin.Context) {
@@ -105,7 +107,20 @@ func (f RequestEndpointsFactory) CreateRequest() func(c *gin.Context) {
 			return
 		}
 
-		request.ConsumerId = userid
+		user := &User.User{Id:userid}
+		user, err  = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such id in system": userid})
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
+			return
+		}
+
+		request.ConsumerId = user.Id
+		request.ConsumerName = user.UserName
 		request.Created = time.Now()
 		result, err := f.requestBase.CreateRequest(&request)
 		if err != nil {
@@ -257,6 +272,7 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 
 		request.Id = requesttocheck.Id
 		request.ConsumerId = requesttocheck.ConsumerId
+		request.ConsumerName = requesttocheck.ConsumerName
 		request.Created = requesttocheck.Created
 
 		result, err := f.requestBase.UpdateRequest(request)

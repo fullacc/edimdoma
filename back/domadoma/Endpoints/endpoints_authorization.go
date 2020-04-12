@@ -297,7 +297,7 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't update user"})
 		}
-		c.JSON(http.StatusOK, gin.H{"Changed password for": intid})
+		c.JSON(http.StatusOK, gin.H{"Changed": intid})
 	}
 }
 

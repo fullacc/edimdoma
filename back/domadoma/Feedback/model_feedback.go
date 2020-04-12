@@ -17,11 +17,13 @@ type FeedbackBase interface {
 }
 
 type Feedback struct {
-	Id         int       `json:"id"`
-	ProducerId int       `json:"producer_id"`
-	ConsumerId int       `json:"consumer_id"`
-	Value      int       `json:"value" binding:"required"`
-	Text       string    `json:"text" binding:"required"`
-	Created    time.Time `json:"created"`
-	DealId     int       `json:"deal_id"`
+	Id           int       `json:"id"`
+	ProducerId   int       `json:"producer_id"`
+	ConsumerId   int       `json:"consumer_id"`
+	ConsumerName string    `json:"consumer_name"`
+	Value        int       `json:"value" binding:"required"`
+	Text         string    `json:"text" binding:"required"`
+	Created      time.Time `json:"created"`
+	DealId       int       `json:"deal_id"`
+	Anon         int       `json:"anon"`
 }

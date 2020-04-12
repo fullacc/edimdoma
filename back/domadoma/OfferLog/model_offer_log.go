@@ -19,6 +19,8 @@ type OfferLogBase interface {
 type OfferLog struct {
 	Id                int       `json:"id"`
 	ProducerId        int       `json:"producer_id" binding:"required"`
+	ProducerName      string    `json:"producer_name"`
+	ProducerRating    float64   `json:"producer_rating"`
 	FoodName          string    `json:"food_name" binding:"required"`
 	Type              int       `json:"type"`
 	Myaso             int       `json:"myaso"`

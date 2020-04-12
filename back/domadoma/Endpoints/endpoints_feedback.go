@@ -138,6 +138,7 @@ func (f FeedbackEndpointsFactory) CreateFeedback() func(c *gin.Context) {
 		}
 
 		feedback.ConsumerId = dealtogetid.ConsumerId
+		feedback.ConsumerName = dealtogetid.ConsumerName
 		feedback.ProducerId = dealtogetid.ProducerId
 		feedback.Created = time.Now()
 		feedback.DealId = dealtogetid.Id
@@ -267,8 +268,10 @@ func (f FeedbackEndpointsFactory) UpdateFeedback() func(c *gin.Context) {
 		}
 
 		feedback.ConsumerId = feedbacktocheck.ConsumerId
+		feedback.ConsumerName = feedbacktocheck.ConsumerName
 		feedback.ProducerId = feedbacktocheck.ProducerId
 		feedback.DealId = feedbacktocheck.DealId
+		feedback.Anon = feedbacktocheck.Anon
 		if feedback.Created.IsZero() {
 			feedback.Created = feedbacktocheck.Created
 		}

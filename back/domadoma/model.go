@@ -47,7 +47,8 @@ const(
 
 const(
 	Hz = iota //0
-	Slegka //1
-	Ostrovato //2
-	Podzhog //3
+	NeOstro //1
+	Slegka //2
+	Ostrovato //3
+	Podzhog //4
 )

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/go-pg/pg"
 	"net/http"
@@ -23,13 +24,14 @@ type OfferEndpoints interface {
 	DeleteOffer() func(c *gin.Context)
 }
 
-func NewOfferEndpoints(offerBase Offer.OfferBase, authorizationBase Authorization.AuthorizationBase) OfferEndpoints {
-	return &OfferEndpointsFactory{offerBase: offerBase, authorizationBase: authorizationBase}
+func NewOfferEndpoints(offerBase Offer.OfferBase, authorizationBase Authorization.AuthorizationBase, userBase User.UserBase) OfferEndpoints {
+	return &OfferEndpointsFactory{offerBase: offerBase, authorizationBase: authorizationBase, userBase: userBase}
 }
 
 type OfferEndpointsFactory struct {
 	authorizationBase Authorization.AuthorizationBase
 	offerBase         Offer.OfferBase
+	userBase		  User.UserBase
 }
 
 func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
@@ -104,7 +106,20 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 			return
 		}
 
-		offer.ProducerId = userid
+		user := &User.User{Id:userid}
+		user, err  = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such id in system": userid})
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db Error"})
+			return
+		}
+		offer.ProducerId = user.Id
+		offer.ProducerName = user.UserName
+		offer.ProducerRating = user.Rating
 		offer.Created = time.Now()
 		offer.AvailableQuantity = offer.InitialQuantity
 
@@ -250,6 +265,8 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 
 		offer.Id = offertocheck.Id
 		offer.ProducerId = offertocheck.ProducerId
+		offer.ProducerName = offertocheck.ProducerName
+		offer.ProducerRating = offertocheck.ProducerRating
 	 	offer.Created = offertocheck.Created
 
 		result, err := f.offerBase.UpdateOffer(offer)
