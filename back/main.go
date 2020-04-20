@@ -11,6 +11,7 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/fullacc/edimdoma/back/domadoma/OfferLog"
+	"github.com/fullacc/edimdoma/back/domadoma/Rabbit"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
@@ -118,11 +119,13 @@ func LaunchServer(configpath string) error {
 		panic(err)
 	}
 
+	rabbitBase, err := Rabbit.NewRabbitMQRabbitBase(configfile,postgreOfferBase,postgreOfferLogBase)
+
 	postgreDealEndpoints := Endpoints.NewDealEndpoints(postgreDealBase, redisAuthorizationBase, postgreOfferBase, postgreOfferLogBase, postgreRequestBase, postgreUserBase)
 
 	postgreFeedbackEndpoints := Endpoints.NewFeedbackEndpoints(postgreFeedbackBase, redisAuthorizationBase, postgreDealBase, postgreUserBase)
 
-	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase, redisAuthorizationBase, postgreUserBase)
+	postgreOfferEndpoints := Endpoints.NewOfferEndpoints(postgreOfferBase, redisAuthorizationBase, postgreUserBase, rabbitBase)
 
 	postgreOfferLogEndpoints := Endpoints.NewOfferLogEndpoints(postgreOfferLogBase, redisAuthorizationBase)
 
@@ -214,6 +217,7 @@ func LaunchServer(configpath string) error {
 		rtr.Run("0.0.0.0:" + port)
 	}(configfile.ApiPort, router)
 	fmt.Println("Server started")
+	rabbitBase.ConsumeRabbit()
 
 	c := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
@@ -229,6 +233,7 @@ func LaunchServer(configpath string) error {
 
 	return nil
 }
+
 func CORS() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

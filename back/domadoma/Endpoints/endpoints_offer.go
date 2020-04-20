@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
+	"github.com/fullacc/edimdoma/back/domadoma/Rabbit"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
 	"github.com/go-pg/pg"
@@ -24,14 +25,15 @@ type OfferEndpoints interface {
 	DeleteOffer() func(c *gin.Context)
 }
 
-func NewOfferEndpoints(offerBase Offer.OfferBase, authorizationBase Authorization.AuthorizationBase, userBase User.UserBase) OfferEndpoints {
-	return &OfferEndpointsFactory{offerBase: offerBase, authorizationBase: authorizationBase, userBase: userBase}
+func NewOfferEndpoints(offerBase Offer.OfferBase, authorizationBase Authorization.AuthorizationBase, userBase User.UserBase, rabbitBase Rabbit.RabbitBase) OfferEndpoints {
+	return &OfferEndpointsFactory{offerBase: offerBase, authorizationBase: authorizationBase, userBase: userBase, rabbitBase: rabbitBase}
 }
 
 type OfferEndpointsFactory struct {
 	authorizationBase Authorization.AuthorizationBase
 	offerBase         Offer.OfferBase
 	userBase		  User.UserBase
+	rabbitBase Rabbit.RabbitBase
 }
 
 func (f OfferEndpointsFactory) GetOffer() func(c *gin.Context) {
@@ -128,6 +130,8 @@ func (f OfferEndpointsFactory) CreateOffer() func(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't create offer"})
 			return
 		}
+		_, err = f.rabbitBase.CreateRabbit(result.Id)
+
 		c.JSON(http.StatusCreated, result)
 	}
 }

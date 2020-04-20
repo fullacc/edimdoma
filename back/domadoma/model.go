@@ -13,6 +13,9 @@ type ConfigFile struct {
 	RdPass       string `json:"rdpass"`
 	SMSlogin     string `json:"smslogin"`
 	SMSpass      string `json:"smspass"`
+	RMQLogin     string `json:"rmq_login"`
+	RMQPassword  string `json:"rmq_password"`
+	RMQPort      string `json:"rmq_port"`
 }
 
 const (
