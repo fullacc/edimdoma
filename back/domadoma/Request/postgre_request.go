@@ -1,42 +1,26 @@
 package Request
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreRequestBase(configfile *domadoma.ConfigFile) (RequestBase, error) {
-
-	db := pg.Connect(&pg.Options{
-		Database: configfile.PgDbName,
-		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User:     configfile.PgDbUser,
-		Password: configfile.PgDbPassword,
-	})
-
-	err := createSchema(db)
-	if err != nil {
-		return nil, err
-	}
-	return &postgreRequestBase{db: db}, nil
-}
-
-type postgreRequestBase struct {
-	db *pg.DB
-}
-
-func createSchema(db *pg.DB) error {
+func NewPostgreRequestBase(db *pg.DB) (RequestBase, error) {
+	//create schema
 	for _, model := range []interface{}{(*Request)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &postgreRequestBase{db: db}, nil
+}
+
+type postgreRequestBase struct {
+	db *pg.DB
 }
 
 func (p *postgreRequestBase) CreateRequest(request *Request) (*Request, error) {

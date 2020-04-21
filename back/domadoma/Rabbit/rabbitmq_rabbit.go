@@ -136,7 +136,6 @@ func (r rabbitMQRabbitBase) ConsumeRabbit() error{
 			offerlog := OfferLog.OfferLog(*offer)
 			_, _ = r.offerLogBase.CreateOfferLog(&offerlog)
 			_ = r.offerBase.DeleteOffer(offer.Id)
-			fmt.Println("Removed ", offer.Id)
 		}
 	}()
 

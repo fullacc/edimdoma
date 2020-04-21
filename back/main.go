@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
+	"github.com/fullacc/edimdoma/back/domadoma/Connection"
 	"github.com/fullacc/edimdoma/back/domadoma/Deal"
 	"github.com/fullacc/edimdoma/back/domadoma/Endpoints"
 	"github.com/fullacc/edimdoma/back/domadoma/Feedback"
@@ -16,6 +16,9 @@ import (
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
 	"github.com/gin-gonic/gin"
+	"github.com/go-pg/pg"
+	"github.com/go-redis/redis"
+	"github.com/segmentio/encoding/json"
 	"github.com/urfave/cli/v2"
 	"io/ioutil"
 	"log"
@@ -54,15 +57,8 @@ func main() {
 	}
 }
 
-func run(c *cli.Context) error {
-	if err := LaunchServer(config); err != nil {
-		return err
-	}
-	return nil
-}
-
-func LaunchServer(configpath string) error {
-	file, err := os.Open(configpath)
+func run(g *cli.Context) error {
+	file, err := os.Open(config)
 	if err != nil {
 		return err
 	}
@@ -79,44 +75,77 @@ func LaunchServer(configpath string) error {
 	}
 	_ = file.Close()
 
-	postgreDealBase, err := Deal.NewPostgreDealBase(configfile)
+	router ,err := setupRouter(configfile)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
-	postgreFeedbackBase, err := Feedback.NewPostgreFeedbackBase(configfile)
+	go func(port string, rtr *gin.Engine) {
+		rtr.Run("0.0.0.0:" + port)
+	}(configfile.ApiPort, router)
+	fmt.Println("Server started")
+
+
+	c := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		done <- true
+	}()
+
+	<-done
+	log.Printf("server shutdown")
+	os.Exit(1)
+	return nil
+}
+
+func setupRouter(configfile *domadoma.ConfigFile)  (*gin.Engine,error) {
+
+	var db *pg.DB
+	db = Connection.ConnectToPostgre(configfile)
+
+	var red *redis.Client
+	red = Connection.ConnectToRedis(configfile)
+
+	postgreDealBase, err := Deal.NewPostgreDealBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	postgreOfferBase, err := Offer.NewPostgreOfferBase(configfile)
+	postgreFeedbackBase, err := Feedback.NewPostgreFeedbackBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	postgreOfferLogBase, err := OfferLog.NewPostgreOfferLogBase(configfile)
+	postgreOfferBase, err := Offer.NewPostgreOfferBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	postgreRequestBase, err := Request.NewPostgreRequestBase(configfile)
+	postgreOfferLogBase, err := OfferLog.NewPostgreOfferLogBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	postgreUserBase, err := User.NewPostgreUserBase(configfile)
+	postgreRequestBase, err := Request.NewPostgreRequestBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	redisAuthorizationBase, err := Authorization.NewRedisAuthorizationBase(configfile)
+	postgreUserBase, err := User.NewPostgreUserBase(db)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+
+	redisAuthorizationBase, err := Authorization.NewRedisAuthorizationBase(red)
+	if err != nil {
+		return nil, err
 	}
 
 	smsBase, err := SMS.NewSMSBase(configfile)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	rabbitBase, err := Rabbit.NewRabbitMQRabbitBase(configfile,postgreOfferBase,postgreOfferLogBase)
@@ -135,8 +164,15 @@ func LaunchServer(configpath string) error {
 
 	redisAuthorizationEndpoints := Endpoints.NewAuthorizationEndpoints(redisAuthorizationBase, smsBase, postgreUserBase)
 
+	go func() {
+		rabbitBase.ConsumeRabbit()
+	}()
+
+
+	gin.SetMode(gin.ReleaseMode)
 	router := gin.Default()
 	router.Use(CORS())
+
 
 	api := router.Group("api")
 	{
@@ -213,25 +249,7 @@ func LaunchServer(configpath string) error {
 		}
 	}
 
-	go func(port string, rtr *gin.Engine) {
-		rtr.Run("0.0.0.0:" + port)
-	}(configfile.ApiPort, router)
-	fmt.Println("Server started")
-	rabbitBase.ConsumeRabbit()
-
-	c := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		done <- true
-	}()
-
-	<-done
-	log.Printf("server shutdown")
-	os.Exit(1)
-
-	return nil
+	return router, nil
 }
 
 func CORS() gin.HandlerFunc {

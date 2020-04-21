@@ -1,42 +1,26 @@
 package Offer
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreOfferBase(configfile *domadoma.ConfigFile) (OfferBase, error) {
-
-	db := pg.Connect(&pg.Options{
-		Database: configfile.PgDbName,
-		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User:     configfile.PgDbUser,
-		Password: configfile.PgDbPassword,
-	})
-
-	err := createSchema(db)
-	if err != nil {
-		return nil, err
-	}
-	return &postgreOfferBase{db: db}, nil
-}
-
-type postgreOfferBase struct {
-	db *pg.DB
-}
-
-func createSchema(db *pg.DB) error {
+func NewPostgreOfferBase(db *pg.DB) (OfferBase, error) {
+	//create schema
 	for _, model := range []interface{}{(*Offer)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &postgreOfferBase{db: db}, nil
+}
+
+type postgreOfferBase struct {
+	db *pg.DB
 }
 
 func (p *postgreOfferBase) CreateOffer(offer *Offer) (*Offer, error) {

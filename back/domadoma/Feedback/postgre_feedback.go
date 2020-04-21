@@ -1,42 +1,26 @@
 package Feedback
 
 import (
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreFeedbackBase(configfile *domadoma.ConfigFile) (FeedbackBase, error) {
-
-	db := pg.Connect(&pg.Options{
-		Database: configfile.PgDbName,
-		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User:     configfile.PgDbUser,
-		Password: configfile.PgDbPassword,
-	})
-
-	err := createSchema(db)
-	if err != nil {
-		return nil, err
-	}
-	return &postgreFeedbackBase{db: db}, nil
-}
-
-type postgreFeedbackBase struct {
-	db *pg.DB
-}
-
-func createSchema(db *pg.DB) error {
+func NewPostgreFeedbackBase(db *pg.DB) (FeedbackBase, error) {
+	//create schema
 	for _, model := range []interface{}{(*Feedback)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &postgreFeedbackBase{db: db}, nil
+}
+
+type postgreFeedbackBase struct {
+	db *pg.DB
 }
 
 func (p *postgreFeedbackBase) CreateFeedback(feedback *Feedback) (*Feedback, error) {

@@ -1,22 +1,17 @@
 package Authorization
 
 import (
-	"encoding/json"
+	"github.com/segmentio/encoding/json"
 	"errors"
-	"fmt"
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-redis/redis"
 	"time"
 )
 
-func NewRedisAuthorizationBase(configfile *domadoma.ConfigFile) (AuthorizationBase, error) {
-	client := redis.NewClient(&redis.Options{
-		Addr:     configfile.RdHost + ":" + configfile.RdPort,
-		Password: configfile.RdPass, // no password set
-		DB:       0,                 // use default DB
-	})
-	pong, err := client.Ping().Result()
-	fmt.Println(pong, err)
+func NewRedisAuthorizationBase(client *redis.Client) (AuthorizationBase, error) {
+	_, err := client.Ping().Result()
+	if err !=nil {
+		return nil, err
+	}
 	return &redisAuthorizationBase{rdb: client}, err
 }
 

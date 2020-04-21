@@ -1,24 +1,20 @@
 package Deal
 
 import (
-	"fmt"
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreDealBase(configfile *domadoma.ConfigFile) (DealBase, error) {
-	fmt.Println(configfile)
-	db := pg.Connect(&pg.Options{
-		Database: configfile.PgDbName,
-		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User:     configfile.PgDbUser,
-		Password: configfile.PgDbPassword,
-	})
-
-	err := createSchema(db)
-	if err != nil {
-		return nil, err
+func NewPostgreDealBase(db *pg.DB) (DealBase, error) {
+	//create schema
+	for _, model := range []interface{}{(*Deal)(nil)} {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp:        false,
+			IfNotExists: true,
+		})
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &postgreDealBase{db: db}, nil
 }
@@ -27,20 +23,7 @@ type postgreDealBase struct {
 	db *pg.DB
 }
 
-func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*Deal)(nil)} {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
-			Temp:        false,
-			IfNotExists: true,
-		})
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *postgreDealBase) CreateDeal(deal *Deal, ) (*Deal, error) {
+func (p *postgreDealBase) CreateDeal(deal *Deal) (*Deal, error) {
 	err := p.db.Insert(deal)
 	if err != nil {
 		return nil, err

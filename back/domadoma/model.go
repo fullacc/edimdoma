@@ -19,7 +19,7 @@ type ConfigFile struct {
 }
 
 const (
-	Undef = iota //0
+	_ = iota //0
 	BLunch //1
 	Pervoe //2
 	Vtoroe //3
@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	Nolik = iota //0
+	_ = iota //0
 	BezMyasa //1
 	Govyadina //2
 	Baranina //3
@@ -49,7 +49,7 @@ const(
 )
 
 const(
-	Hz = iota //0
+	_ = iota //0
 	NeOstro //1
 	Slegka //2
 	Ostrovato //3

@@ -2,6 +2,7 @@ package Endpoints
 
 import (
 	"errors"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Offer"
 	"github.com/fullacc/edimdoma/back/domadoma/Rabbit"
@@ -231,23 +232,23 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			offer.Description = offertocheck.Description
 		}
 
-		if offer.Type == 0 {
+		if offer.Type == domadoma.Null {
 			offer.Type = offertocheck.Type
 		}
 
-		if offer.Myaso == 0 {
+		if offer.Myaso == domadoma.Null {
 			offer.Myaso = offertocheck.Myaso
 		}
 
-		if offer.Halal == 0 {
+		if offer.Halal == domadoma.Null {
 			offer.Halal = offertocheck.Halal
 		}
 
-		if offer.Vegan == 0 {
+		if offer.Vegan == domadoma.Null {
 			offer.Vegan = offertocheck.Vegan
 		}
 
-		if offer.Spicy == 0 {
+		if offer.Spicy == domadoma.Null {
 			offer.Spicy = offertocheck.Spicy
 		}
 
@@ -255,7 +256,7 @@ func (f OfferEndpointsFactory) UpdateOffer() func(c *gin.Context) {
 			offer.Location = offertocheck.Location
 		}
 
-		if offer.Price == 0 {
+		if offer.Price == domadoma.Null {
 			offer.Price = offertocheck.Price
 		}
 

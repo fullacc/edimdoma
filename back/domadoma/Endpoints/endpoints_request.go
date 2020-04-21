@@ -2,6 +2,7 @@ package Endpoints
 
 import (
 	"errors"
+	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/Request"
 	"github.com/fullacc/edimdoma/back/domadoma/User"
@@ -238,23 +239,23 @@ func (f RequestEndpointsFactory) UpdateRequest() func(c *gin.Context) {
 			request.Description = requesttocheck.Description
 		}
 
-		if request.Type == 0 {
+		if request.Type == domadoma.Null {
 			request.Type = requesttocheck.Type
 		}
 
-		if request.Myaso == 0 {
+		if request.Myaso == domadoma.Null {
 			request.Myaso = requesttocheck.Myaso
 		}
 
-		if request.Halal == 0 {
+		if request.Halal == domadoma.Null {
 			request.Halal = requesttocheck.Halal
 		}
 
-		if request.Vegan == 0 {
+		if request.Vegan == domadoma.Null {
 			request.Vegan = requesttocheck.Vegan
 		}
 
-		if request.Spicy == 0 {
+		if request.Spicy == domadoma.Null {
 			request.Spicy = requesttocheck.Spicy
 		}
 

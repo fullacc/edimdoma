@@ -1,43 +1,25 @@
 package User
 
 import (
-	"fmt"
-	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
 )
 
-func NewPostgreUserBase(configfile *domadoma.ConfigFile) (UserBase, error) {
-
-	db := pg.Connect(&pg.Options{
-		Database: configfile.PgDbName,
-		Addr:     configfile.PgDbHost + ":" + configfile.PgDbPort,
-		User:     configfile.PgDbUser,
-		Password: configfile.PgDbPassword,
-	})
-
-	err := createSchema(db)
-	if err != nil {
-		return nil, err
-	}
-	return &postgreUserBase{db: db}, nil
-}
-
-type postgreUserBase struct {
-	db *pg.DB
-}
-
-func createSchema(db *pg.DB) error {
+func NewPostgreUserBase(db *pg.DB) (UserBase, error) {
 	for _, model := range []interface{}{(*User)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp:        false,
 			IfNotExists: true,
 		})
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &postgreUserBase{db: db}, nil
+}
+
+type postgreUserBase struct {
+	db *pg.DB
 }
 
 func (p *postgreUserBase) CreateUser(user *User) (*User, error) {
@@ -55,7 +37,6 @@ func (p *postgreUserBase) GetUser(user *User) (*User, error) {
 	} else {
 		if user.UserName != "" {
 			err = p.db.Model(user).Where("user_name = ?", user.UserName).Limit(1).Select()
-			fmt.Println(user)
 		} else {
 			if user.Phone != "" {
 				err = p.db.Model(user).Where("phone = ?", user.Phone).Limit(1).Select()

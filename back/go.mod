@@ -12,6 +12,7 @@ require (
 	github.com/onsi/ginkgo v1.12.0 // indirect
 	github.com/onsi/gomega v1.9.0 // indirect
 	github.com/rs/xid v1.2.1
+	github.com/segmentio/encoding v0.1.11
 	github.com/streadway/amqp v0.0.0-20200108173154-1c71cc93ed71
 	github.com/urfave/cli/v2 v2.2.0
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59

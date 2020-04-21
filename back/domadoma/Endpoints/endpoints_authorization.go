@@ -1,7 +1,7 @@
 package Endpoints
 
 import (
-	"encoding/json"
+	"github.com/segmentio/encoding/json"
 	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
 	"github.com/fullacc/edimdoma/back/domadoma/SMS"
