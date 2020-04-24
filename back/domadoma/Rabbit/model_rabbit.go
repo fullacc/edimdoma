@@ -6,4 +6,4 @@ type RabbitBase interface {
 	ConsumeRabbit() error
 }
 
-const DelayMilliseconds string = "20000"
+const DelayMilliseconds string = "28800000"

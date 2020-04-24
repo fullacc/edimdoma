@@ -307,6 +307,11 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 			user.Surname = usertocheck.Surname
 		}
 
+		if user.Location == nil {
+			user.Location = usertocheck.Location
+		}
+
+
 		_, err = f.userBase.UpdateUser(user)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't Update user"})

@@ -1,8 +1,7 @@
-package Offer
+package Deal
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/segmentio/encoding/json"
 	"github.com/fullacc/edimdoma/back/domadoma"
 	"github.com/fullacc/edimdoma/back/domadoma/Connection"
@@ -13,11 +12,11 @@ import (
 	"time"
 )
 
-var offerBase OfferBase
+var dealBase DealBase
 var db *pg.DB
 
 
-func TestPostgreOfferBase_CreateOffer(t *testing.T) {
+func TestPostgreDealBase_CreateDeal(t *testing.T) {
 	var err error
 	file, err := os.Open("./../../../../4ernovik/config.json")
 	if err != nil {
@@ -36,7 +35,7 @@ func TestPostgreOfferBase_CreateOffer(t *testing.T) {
 	}
 	_ = file.Close()
 	db = Connection.ConnectToPostgre(configfile)
-	offerBase, err = NewPostgreOfferBase(db)
+	dealBase, err = NewPostgreDealBase(db)
 	if err != nil {
 		t.Error(err)
 	}
@@ -44,36 +43,55 @@ func TestPostgreOfferBase_CreateOffer(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	offer:=&Offer{
-		ConsumerId:5,
-		ProducerId:3,
-		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"ggwp",
-		Created: crtd,
-		DealId:1,
-		Anon:1,
-	}
-	offer,err = offerBase.CreateOffer(offer)
+	zr, err := time.Parse("2006-01-02T15:04:05Z07:00","0001-01-01T00:00:00Z")
 	if err != nil {
 		t.Error(err)
 	}
-	offertest:=Offer{
-		Id:offer.Id,
+	deal:=&Deal{
+		FoodName:"test",
+		Type:1,
+		Myaso:1,
+		Halal:1,
+		Vegan:1,
+		Spicy:3,
+		Description:"testtext",
+		Price:69,
+		Quantity:3,
 		ConsumerId:5,
 		ProducerId:3,
 		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"ggwp",
+		ProducerName:"stella",
 		Created: crtd,
-		DealId:1,
-		Anon:1,}
-	if *offer != offertest {
+		Finished: zr,
+		Complete:"false"}
+	deal,err = dealBase.CreateDeal(deal)
+	if err != nil {
+		t.Error(err)
+	}
+	dealtest:=Deal{
+		Id:deal.Id,
+		FoodName:"test",
+		Type:1,
+		Myaso:1,
+		Halal:1,
+		Vegan:1,
+		Spicy:3,
+		Description:"testtext",
+		Price:69,
+		Quantity:3,
+		ConsumerId:5,
+		ProducerId:3,
+		ConsumerName:"antoshka",
+		ProducerName:"stella",
+		Created: crtd,
+		Finished: zr,
+		Complete:"false"}
+	if *deal != dealtest {
 		t.Error("Not equal")
 	}
 }
 
-func TestPostgreOfferBase_GetOffer(t *testing.T) {
+func TestPostgreDealBase_GetDeal(t *testing.T) {
 	var err error
 	file, err := os.Open("./../../../../4ernovik/config.json")
 	if err != nil {
@@ -92,36 +110,47 @@ func TestPostgreOfferBase_GetOffer(t *testing.T) {
 	}
 	_ = file.Close()
 	db = Connection.ConnectToPostgre(configfile)
-	offerBase, err = NewPostgreOfferBase(db)
+	dealBase, err = NewPostgreDealBase(db)
 	if err != nil {
 		t.Error(err)
 	}
-	offer := &Offer{Id: 1}
-	offer, err = offerBase.GetOffer(offer)
+	deal := &Deal{Id: 1}
+	deal, err = dealBase.GetDeal(deal)
 	if err != nil {
 		t.Error(err)
 	}
-	crtd, err := time.Parse("2006-01-02T15:04:05Z07:00", "2020-04-12T22:59:02.440137+06:00")
+	crtd, err := time.Parse("2006-01-02T15:04:05Z07:00", "2020-04-12T22:57:57.244503+06:00")
 	if err != nil {
 		t.Error(err)
 	}
-
-	offertest:=Offer{
+	zr, err := time.Parse("2006-01-02T15:04:05Z07:00","0001-01-01T00:00:00Z")
+	if err != nil {
+		t.Error(err)
+	}
+	dealtest:=Deal{
 		Id:1,
+		FoodName:"lasagna",
+		Type:0,
+		Myaso:0,
+		Halal:0,
+		Vegan:0,
+		Spicy:2,
+		Description:"",
+		Price:12312312,
+		Quantity:1,
 		ConsumerId:5,
 		ProducerId:3,
 		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"very tasty BESH",
+		ProducerName:"stella",
 		Created: crtd,
-		DealId:1,
-		Anon:1,}
-	if *offer != offertest{
+		Finished: zr,
+		Complete:"false"}
+	if *deal != dealtest{
 		t.Error("Title is not equal")
 	}
 }
 
-func TestPostgreOfferBase_ListOffers(t *testing.T) {
+func TestPostgreDealBase_ListDeals(t *testing.T) {
 	var err error
 	file, err := os.Open("./../../../../4ernovik/config.json")
 	if err != nil {
@@ -140,34 +169,45 @@ func TestPostgreOfferBase_ListOffers(t *testing.T) {
 	}
 	_ = file.Close()
 	db = Connection.ConnectToPostgre(configfile)
-	offerBase, err = NewPostgreOfferBase(db)
+	dealBase, err = NewPostgreDealBase(db)
 	if err != nil {
 		t.Error(err)
 	}
-	offers, err := offerBase.ListOffers()
-	crtd, err := time.Parse("2006-01-02T15:04:05Z07:00", "2020-04-12T22:59:02.440137+06:00")
+	deals, err := dealBase.ListDeals()
+	crtd, err := time.Parse("2006-01-02T15:04:05Z07:00", "2020-04-12T22:57:57.244503+06:00")
 	if err != nil {
 		t.Error(err)
 	}
-
-	offertest:=Offer{
-		Id:offers[0].Id,
+	zr, err := time.Parse("2006-01-02T15:04:05Z07:00","0001-01-01T00:00:00Z")
+	if err != nil {
+		t.Error(err)
+	}
+	dealtest:=Deal{
+		Id:deals[0].Id,
+		FoodName:"lasagna",
+		Type:0,
+		Myaso:0,
+		Halal:0,
+		Vegan:0,
+		Spicy:2,
+		Description:"",
+		Price:12312312,
+		Quantity:1,
 		ConsumerId:5,
 		ProducerId:3,
 		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"very tasty BESH",
+		ProducerName:"stella",
 		Created: crtd,
-		DealId:1,
-		Anon:1,}
-	if *offers[0] != offertest{
-		fmt.Println(offertest)
-		fmt.Println(*offers[0])
+		Finished: zr,
+		Complete:"false"}
+	if *deals[0] != dealtest{
+		//fmt.Println(dealtest)
+		//fmt.Println(*deals[1])
 		t.Error("Title is not equal")
 	}
 }
 
-func TestPostgreOfferBase_DeleteOffer(t *testing.T) {
+func TestPostgreDealBase_DeleteDeal(t *testing.T) {
 	var err error
 	file, err := os.Open("./../../../../4ernovik/config.json")
 	if err != nil {
@@ -186,7 +226,7 @@ func TestPostgreOfferBase_DeleteOffer(t *testing.T) {
 	}
 	_ = file.Close()
 	db = Connection.ConnectToPostgre(configfile)
-	offerBase, err = NewPostgreOfferBase(db)
+	dealBase, err = NewPostgreDealBase(db)
 	if err != nil {
 		t.Error(err)
 	}
@@ -194,38 +234,33 @@ func TestPostgreOfferBase_DeleteOffer(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	offer:=&Offer{
-		ConsumerId:5,
-		ProducerId:3,
-		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"very tasty BESH",
-		Created: crtd,
-		DealId:1,
-		Anon:1,}
-	offer,err = offerBase.CreateOffer(offer)
+	zr, err := time.Parse("2006-01-02T15:04:05Z07:00","0001-01-01T00:00:00Z")
 	if err != nil {
 		t.Error(err)
 	}
-	offertest:=Offer{
-		Id:offer.Id,
+	deal:=&Deal{
+		FoodName:"test",
+		Type:1,
+		Myaso:1,
+		Halal:1,
+		Vegan:1,
+		Spicy:3,
+		Description:"testtext",
+		Price:69,
+		Quantity:3,
 		ConsumerId:5,
 		ProducerId:3,
 		ConsumerName:"antoshka",
-		Value: 2,
-		Text:"ggwp",
+		ProducerName:"stella",
 		Created: crtd,
-		DealId:1,
-		Anon:1,}
-	if *offer != offertest {
-		t.Error("Not equal")
-	}
-	offer, err = offerBase.GetOffer(offer)
+		Finished: zr,
+		Complete:"false"}
+	deal,err = dealBase.CreateDeal(deal)
 	if err != nil {
 		t.Error(err)
 	}
-	offerBase.DeleteOffer(offer.Id)
-	_, err = offerBase.GetOffer(offer)
+	dealBase.DeleteDeal(deal.Id)
+	_, err = dealBase.GetDeal(deal)
 	if err == nil {
 		t.Errorf("Not deleted")
 	}
