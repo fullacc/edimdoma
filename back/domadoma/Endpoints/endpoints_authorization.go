@@ -1,6 +1,7 @@
 package Endpoints
 
 import (
+	"fmt"
 	"github.com/segmentio/encoding/json"
 	"errors"
 	"github.com/fullacc/edimdoma/back/domadoma/Authorization"
@@ -27,6 +28,12 @@ type AuthorizationEndpoints interface {
 	CheckPhone() func(c *gin.Context)
 
 	CheckCode() func(c *gin.Context)
+
+	ForgotPassCheckLogin() func(c *gin.Context)
+
+	ForgotCheckCode() func(c *gin.Context)
+
+	ForgotResetPassword() func(c *gin.Context)
 }
 
 func NewAuthorizationEndpoints(authorizationBase Authorization.AuthorizationBase, smsBase SMS.SMSBase, userBase User.UserBase) AuthorizationEndpoints {
@@ -191,13 +198,13 @@ func (f AuthorizationEndpointsFactory) LoginUser() func(c *gin.Context) {
 			return
 		}
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"Debug": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
 			return
 		}
 
 		err = bcrypt.CompareHashAndPassword(lookupuser.PasswordHash, []byte(user.Password))
 		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"Error ": "Wrong password"})
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Wrong password"})
 			return
 		}
 
@@ -303,7 +310,7 @@ func (f AuthorizationEndpointsFactory) ChangePassword() func(c *gin.Context) {
 
 func (f AuthorizationEndpointsFactory) CheckPhone() func(c *gin.Context) {
 	return func(c *gin.Context) {
-		number := Authorization.RegistrationPhone{}
+		number := Authorization.Phone{}
 		err := c.ShouldBindJSON(&number)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "wrong data"})
@@ -371,7 +378,7 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 			return
 		}
 
-		codetocheck := &Authorization.RegistrationCode{}
+		codetocheck := &Authorization.Code{}
 		err = c.ShouldBindJSON(&codetocheck)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided Code is in wrong format"})
@@ -410,5 +417,171 @@ func (f AuthorizationEndpointsFactory) CheckCode() func(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
+	}
+}
+
+func (f AuthorizationEndpointsFactory) ForgotPassCheckLogin() func(c *gin.Context){
+	return func(c *gin.Context){
+		var user Authorization.ForgotLogin
+		err := c.ShouldBindJSON(&user)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error ": "Provided data is in wrong format"})
+			return
+		}
+		user.Login = strings.ToLower(user.Login)
+
+		lookupuser := &User.User{}
+		matched, err := Authorization.Validator(Authorization.Phn, user.Login)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate phone"})
+			return
+		}
+		if matched {
+			lookupuser.Phone = user.Login
+		} else {
+			matched, err = Authorization.Validator(Authorization.Usrnm, user.Login)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate username"})
+				return
+			}
+			if matched {
+				lookupuser.UserName = user.Login
+			} else {
+				c.JSON(http.StatusBadRequest, gin.H{"Error": "Invalid login input"})
+				return
+			}
+		}
+
+		lookupuser, err = f.userBase.GetUser(lookupuser)
+		fmt.Println(lookupuser)
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such user in system": user.Login})
+			return
+		}
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
+			return
+		}
+
+		sms := SMS.SMS{Phone: lookupuser.Phone}
+		sentSMS, err := f.smsBase.SendSMS(sms)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't send sms"})
+			return
+		}
+
+		token, err := Authorization.GenerateToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
+			return
+		}
+
+		input := &Authorization.ForgotToken{Token: token, UserId: lookupuser.Id, Code: sentSMS.Code}
+		data, err := json.Marshal(input)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't;("})
+			return
+		}
+
+		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't save token"})
+			return
+		}
+		sentnumber := lookupuser.Phone[0:3]+"*****"+lookupuser.Phone[8:10]
+		c.JSON(http.StatusOK, gin.H{"Token": input.Token,"Number":sentnumber})
+	}
+}
+
+func (f AuthorizationEndpointsFactory) ForgotCheckCode() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		currtoken, err := f.authorizationBase.GetForgotToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
+			return
+		}
+
+		codetocheck := &Authorization.Code{}
+		err = c.ShouldBindJSON(&codetocheck)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided Code is in wrong format"})
+			return
+		}
+
+		matched, err := Authorization.Validator(Authorization.Cd, codetocheck.Code)
+		if err != nil || !matched {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't validate Code"})
+			return
+		}
+
+		if codetocheck.Code != currtoken.Code {
+			_ = f.authorizationBase.DeleteToken(currtoken.Token)
+			c.JSON(http.StatusForbidden, gin.H{"Error": "Wrong Code, removing your token"})
+			return
+		}
+
+		token, err := Authorization.GenerateToken()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make you safe"})
+			return
+		}
+
+		input := &Authorization.ForgotToken{Token: token, UserId: currtoken.UserId, Code: "fine"}
+		data, err := json.Marshal(input)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't;("})
+			return
+		}
+
+		err = f.authorizationBase.SetToken(input.Token, data, 5*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "I just can't save token"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"Token": input.Token})
+	}
+}
+
+
+func (f AuthorizationEndpointsFactory) ForgotResetPassword() func(c *gin.Context) {
+	return func(c *gin.Context) {
+		curruser, err := f.authorizationBase.GetForgotToken(c.Request.Header.Get("Token"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find token"})
+			return
+		}
+
+		pass := Authorization.Password{}
+		err = c.ShouldBindJSON(&pass)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"Error": "Provided data is in wrong format"})
+			return
+		}
+
+		user := &User.User{Id: curruser.UserId}
+		user, err = f.userBase.GetUser(user)
+		if err != nil && errors.Is(err, pg.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"No such user in system": curruser.UserId})
+			return
+		}
+
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Db error"})
+			return
+		}
+
+		newpwd := []byte(pass.Password)
+		user.PasswordHash, err = bcrypt.GenerateFromPassword(newpwd, bcrypt.MinCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't make your password safe"})
+			return
+		}
+
+		_, err = f.userBase.UpdateUser(user)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't update user"})
+		}
+		c.JSON(http.StatusOK, gin.H{"Changed": curruser.UserId})
 	}
 }

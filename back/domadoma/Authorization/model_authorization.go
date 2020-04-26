@@ -9,6 +9,8 @@ type AuthorizationBase interface {
 
 	GetRegistrationToken(token string) (*RegistrationToken, error)
 
+	GetForgotToken(token string) (*ForgotToken, error)
+
 	SetToken(token string, data []byte, expr time.Duration) error
 
 	DeleteToken(token string) error
@@ -29,9 +31,9 @@ const (
 )
 
 type AuthToken struct {
-	Token      string
-	Permission int
-	UserId     int
+	Token      string `json:"token"`
+	Permission int `json:"permission" binding:"required"`
+	UserId     int `json:"user_id" binding:"required"`
 }
 
 type RegistrationToken struct {
@@ -40,11 +42,11 @@ type RegistrationToken struct {
 	Code  string `json:"code" binding:"required"`
 }
 
-type RegistrationPhone struct {
+type Phone struct {
 	Phone string `json:"phone"`
 }
 
-type RegistrationCode struct {
+type Code struct {
 	Code string `json:"code"`
 }
 
@@ -61,4 +63,18 @@ type UserLogin struct {
 type UserChangePassword struct {
 	OldPassword string `json:"old_password" binding:"required"`
 	NewPassword string `json:"new_password" binding:"required"`
+}
+
+type ForgotLogin struct{
+	Login string `json:"login" binding:"required"`
+}
+
+type ForgotToken struct{
+	Token  string `json:"token"`
+	UserId int    `json:"user_id"`
+	Code   string `json:"code"`
+}
+
+type Password struct{
+	Password string `json:"password" binding:"required"`
 }

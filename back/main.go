@@ -81,7 +81,8 @@ func run(g *cli.Context) error {
 	}
 
 	go func(port string, rtr *gin.Engine) {
-		rtr.Run("0.0.0.0:" + port)
+		rtr.Run("0.0.0.0:"+port)
+		//rtr.RunTLS("0.0.0.0:"+port,"/etc/letsencrypt/live/fresta.me/cert.pem","/etc/letsencrypt/live/fresta.me/privkey.pem")
 	}(configfile.ApiPort, router)
 	fmt.Println("Server started")
 
@@ -246,6 +247,9 @@ func setupRouter(configfile *domadoma.ConfigFile)  (*gin.Engine,error) {
 			users.POST("login", redisAuthorizationEndpoints.LoginUser())
 			users.PATCH("logout", redisAuthorizationEndpoints.LogoutUser())
 			users.PUT(":userid/changepassword", redisAuthorizationEndpoints.ChangePassword())
+			users.POST("forgot/login",redisAuthorizationEndpoints.ForgotPassCheckLogin())
+			users.POST("forgot/checkcode", redisAuthorizationEndpoints.ForgotCheckCode())
+			users.POST("forgot/newpassword", redisAuthorizationEndpoints.ForgotResetPassword())
 		}
 	}
 

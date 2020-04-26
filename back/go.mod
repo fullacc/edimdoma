@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/gin-contrib/cors v1.3.1
+	github.com/gin-gonic/autotls v0.0.0-20200314141124-cc69476aef2a
 	github.com/gin-gonic/contrib v0.0.0-20191209060500-d6e26eeaa607
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-pg/pg v8.0.6+incompatible

@@ -57,6 +57,25 @@ func (r redisAuthorizationBase) GetRegistrationToken(token string) (*Registratio
 	return uInfo, nil
 }
 
+func (r redisAuthorizationBase) GetForgotToken(token string) (*ForgotToken, error) {
+	if len(token) == 0 {
+		return nil, errors.New("no token provided")
+	}
+	val, err := r.rdb.Get(token).Result()
+	uInfo := &ForgotToken{}
+	if err == redis.Nil {
+		return nil, errors.New("no such token")
+	} else if err != nil {
+		return nil, err
+	} else {
+		err := json.Unmarshal([]byte(val), uInfo)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return uInfo, nil
+}
+
 func (r redisAuthorizationBase) SetToken(token string, data []byte, expr time.Duration) error {
 	return r.rdb.Set(token, data, expr).Err()
 }
