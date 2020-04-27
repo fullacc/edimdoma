@@ -241,7 +241,8 @@ func (f UserEndpointsFactory) UpdateUser() func(c *gin.Context) {
 		user.Role = usertocheck.Role
 		user.RatingN = usertocheck.RatingN
 		user.RatingTotal = usertocheck.RatingTotal
-		user.Rating = usertocheck.RatingTotal / usertocheck.RatingN
+		user.Rating = usertocheck.Rating
+
 		user.Id = usertocheck.Id
 		if user.UserName == "" {
 			user.UserName = usertocheck.UserName
