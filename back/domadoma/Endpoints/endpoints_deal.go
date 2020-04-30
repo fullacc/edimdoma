@@ -106,11 +106,6 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			return
 		}
 
-		if deal.Price < 1 {
-			c.JSON(http.StatusBadRequest, gin.H{"Error": "Wrong price"})
-			return
-		}
-
 		if len(reqid) != 0 {
 			intid, err := strconv.Atoi(reqid)
 			if err != nil {
@@ -122,6 +117,11 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 			request, err = f.requestBase.GetRequest(request)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"Error": "Couldn't find request"})
+				return
+			}
+
+			if deal.Price < 1 {
+				c.JSON(http.StatusBadRequest, gin.H{"Error": "Wrong price"})
 				return
 			}
 
@@ -211,6 +211,7 @@ func (f DealEndpointsFactory) CreateDeal() func(c *gin.Context) {
 				deal.FoodName = offer.FoodName
 				deal.ConsumerId = user.Id
 				deal.ConsumerName = user.UserName
+				deal.Price = offer.Price
 				deal.ProducerId = offer.ProducerId
 				deal.ProducerName = offer.ProducerName
 				deal.Type = offer.Type

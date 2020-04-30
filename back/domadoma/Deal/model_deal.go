@@ -33,7 +33,7 @@ type Deal struct {
 	Vegan        int       `json:"vegan"`
 	Spicy        int       `json:"spicy"`
 	Description  string    `json:"description"`
-	Price        int       `json:"price" binding:"required"`
+	Price        int       `json:"price"`
 	Quantity     int       `json:"quantity"`
 	ConsumerId   int       `json:"consumer_id"`
 	ProducerId   int       `json:"producer_id"`
